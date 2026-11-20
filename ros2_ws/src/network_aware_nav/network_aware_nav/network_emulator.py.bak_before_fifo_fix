@@ -1,0 +1,305 @@
+import copy
+import heapq
+import random
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+
+from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Float32MultiArray, String
+
+
+class NetworkEmulator(Node):
+
+    def __init__(self):
+        super().__init__('network_emulator')
+
+        # ---------------------------------------------------------
+        # Parameters
+        # ---------------------------------------------------------
+        self.declare_parameter('profile', 'normal')
+        self.declare_parameter('input_topic', '/scan')
+        self.declare_parameter('output_topic', '/scan_degraded')
+        self.declare_parameter('seed', 3)
+
+        input_topic = (
+            self.get_parameter('input_topic')
+            .get_parameter_value()
+            .string_value
+        )
+
+        output_topic = (
+            self.get_parameter('output_topic')
+            .get_parameter_value()
+            .string_value
+        )
+
+        seed = (
+            self.get_parameter('seed')
+            .get_parameter_value()
+            .integer_value
+        )
+
+        self.rng = random.Random(seed)
+
+        # Priority queue:
+        # (release_time_ns, sequence, LaserScan, sampled_delay)
+        self.queue = []
+        self.sequence = 0
+
+        # Statistics for the latest reporting window
+        self.window_received = 0
+        self.window_dropped = 0
+
+        self.last_delay = 0.0
+        self.last_scan_age = 0.0
+        self.last_loss = 0.0
+
+        # ---------------------------------------------------------
+        # ROS interfaces
+        # ---------------------------------------------------------
+        self.scan_sub = self.create_subscription(
+            LaserScan,
+            input_topic,
+            self.scan_callback,
+            qos_profile_sensor_data
+        )
+
+        self.scan_pub = self.create_publisher(
+            LaserScan,
+            output_topic,
+            qos_profile_sensor_data
+        )
+
+        self.topic_age_pub = self.create_publisher(
+            Float32MultiArray,
+            '/topic_age',
+            10
+        )
+
+        self.profile_pub = self.create_publisher(
+            String,
+            '/network_profile',
+            10
+        )
+
+        # Flush delayed messages at 100 Hz.
+        self.flush_timer = self.create_timer(
+            0.01,
+            self.flush_queue
+        )
+
+        # Publish statistics at 2 Hz.
+        self.stats_timer = self.create_timer(
+            0.5,
+            self.publish_stats
+        )
+
+        self.get_logger().info(
+            f'Network emulator started: '
+            f'{input_topic} -> {output_topic}'
+        )
+
+    # -------------------------------------------------------------
+    # Network profiles
+    # -------------------------------------------------------------
+    def get_profile_parameters(self):
+
+        profile = (
+            self.get_parameter('profile')
+            .get_parameter_value()
+            .string_value
+        )
+
+        if profile == 'normal':
+            delay_min = 0.02
+            delay_max = 0.05
+            loss_min = 0.00
+            loss_max = 0.01
+
+        elif profile == 'mild':
+            delay_min = 0.08
+            delay_max = 0.15
+            loss_min = 0.02
+            loss_max = 0.05
+
+        elif profile == 'moderate':
+            delay_min = 0.18
+            delay_max = 0.30
+            loss_min = 0.08
+            loss_max = 0.15
+
+        elif profile == 'severe':
+            delay_min = 0.45
+            delay_max = 0.70
+            loss_min = 0.20
+            loss_max = 0.35
+
+        else:
+            self.get_logger().warn(
+                f'Unknown profile "{profile}", using normal'
+            )
+
+            profile = 'normal'
+
+            delay_min = 0.02
+            delay_max = 0.05
+            loss_min = 0.00
+            loss_max = 0.01
+
+        return (
+            profile,
+            delay_min,
+            delay_max,
+            loss_min,
+            loss_max
+        )
+
+    # -------------------------------------------------------------
+    # Incoming raw scan
+    # -------------------------------------------------------------
+    def scan_callback(self, msg):
+
+        (
+            _,
+            delay_min,
+            delay_max,
+            loss_min,
+            loss_max
+        ) = self.get_profile_parameters()
+
+        self.window_received += 1
+
+        delay = self.rng.uniform(
+            delay_min,
+            delay_max
+        )
+
+        loss_probability = self.rng.uniform(
+            loss_min,
+            loss_max
+        )
+
+        # Real packet drop.
+        if self.rng.random() < loss_probability:
+            self.window_dropped += 1
+            return
+
+        now_ns = self.get_clock().now().nanoseconds
+
+        release_ns = (
+            now_ns +
+            int(delay * 1_000_000_000)
+        )
+
+        self.sequence += 1
+
+        # Preserve original header timestamp intentionally.
+        # Therefore message age increases naturally while queued.
+        queued_msg = copy.deepcopy(msg)
+
+        heapq.heappush(
+            self.queue,
+            (
+                release_ns,
+                self.sequence,
+                queued_msg,
+                delay
+            )
+        )
+
+    # -------------------------------------------------------------
+    # Publish messages whose artificial delay has expired
+    # -------------------------------------------------------------
+    def flush_queue(self):
+
+        now_ns = self.get_clock().now().nanoseconds
+
+        while self.queue and self.queue[0][0] <= now_ns:
+
+            (
+                _,
+                _,
+                msg,
+                sampled_delay
+            ) = heapq.heappop(self.queue)
+
+            self.scan_pub.publish(msg)
+
+            stamp_ns = (
+                int(msg.header.stamp.sec)
+                * 1_000_000_000
+                + int(msg.header.stamp.nanosec)
+            )
+
+            age = max(
+                0.0,
+                (now_ns - stamp_ns)
+                / 1_000_000_000.0
+            )
+
+            self.last_delay = sampled_delay
+            self.last_scan_age = age
+
+    # -------------------------------------------------------------
+    # Statistics / diagnostic topics
+    # -------------------------------------------------------------
+    def publish_stats(self):
+
+        profile = (
+            self.get_parameter('profile')
+            .get_parameter_value()
+            .string_value
+        )
+
+        if self.window_received > 0:
+            actual_loss = (
+                self.window_dropped
+                / self.window_received
+            )
+        else:
+            actual_loss = 0.0
+
+        self.last_loss = actual_loss
+
+        msg = Float32MultiArray()
+
+        # [actual sampled latency,
+        #  measured loss ratio,
+        #  actual scan information age,
+        #  cmd age (unused in Stage 0 scan relay)]
+        msg.data = [
+            float(self.last_delay),
+            float(self.last_loss),
+            float(self.last_scan_age),
+            0.0,
+        ]
+
+        self.topic_age_pub.publish(msg)
+
+        profile_msg = String()
+        profile_msg.data = profile
+        self.profile_pub.publish(profile_msg)
+
+        self.window_received = 0
+        self.window_dropped = 0
+
+
+def main(args=None):
+
+    rclpy.init(args=args)
+
+    node = NetworkEmulator()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

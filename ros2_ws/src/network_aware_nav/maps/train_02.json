@@ -1,0 +1,23 @@
+{
+  "name": "train_02",
+  "kind": "train",
+  "seed": 30003,
+  "size_m": [
+    17.861,
+    9.273
+  ],
+  "start": [
+    8.744,
+    -4.461,
+    0.0
+  ],
+  "goal": [
+    -8.706,
+    4.439,
+    0.0
+  ],
+  "geodesic_path_length_m": 26.35,
+  "n_obstacles": 5,
+  "map_resolution": 0.05,
+  "robot_radius": 0.14
+}

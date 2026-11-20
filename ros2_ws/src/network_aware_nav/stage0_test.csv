@@ -1,0 +1,10 @@
+policy,profile,episode,success,collision,nav_time,path_len,min_obs_dist,note
+default,normal,0,0,1,,0.106,0.158,collision
+default,normal,1,0,1,,0.422,0.156,collision
+default,normal,2,0,1,,0.112,0.152,collision
+default,severe,0,0,1,,0.834,0.153,collision
+default,severe,1,0,1,,0.901,0.153,collision
+default,severe,2,0,1,,1.041,0.14,collision
+conservative,severe,0,0,1,,0.873,0.155,collision
+conservative,severe,1,0,1,,0.896,0.154,collision
+conservative,severe,2,0,1,,0.062,0.149,collision

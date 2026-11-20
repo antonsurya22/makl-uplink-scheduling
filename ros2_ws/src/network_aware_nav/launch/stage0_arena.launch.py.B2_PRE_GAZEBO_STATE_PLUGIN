@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""
+stage0_arena.launch.py -- bring up everything Stage 0 needs, and nothing else.
+
+    Gazebo Classic + arena_lab world + TurtleBot3 Burger
+    Nav2 (map_server, AMCL, planner, controller, bt_navigator)
+    network_emulator
+
+No DQN, no state aggregator, no safety supervisor. Stage 0 only measures whether
+degradation hurts Default Nav2 and whether a conservative configuration has
+headroom, so anything else is a distraction and a source of bugs.
+
+    export TURTLEBOT3_MODEL=burger
+    ros2 launch network_aware_nav stage0_arena.launch.py
+
+VERIFY BEFORE USE. Paths and node names follow the common ROS 2 Humble +
+TurtleBot3 + Nav2 layout, but your package structure may differ. Check:
+    ros2 pkg prefix network_aware_nav
+    ls $(ros2 pkg prefix network_aware_nav)/share/network_aware_nav
+"""
+
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+
+PKG = "network_aware_nav"
+
+
+def generate_launch_description():
+    pkg_share = get_package_share_directory(PKG)
+    gazebo_ros = get_package_share_directory("gazebo_ros")
+    nav2_bringup = get_package_share_directory("nav2_bringup")
+
+    world = LaunchConfiguration("world")
+    map_yaml = LaunchConfiguration("map")
+    params_file = LaunchConfiguration("params_file")
+    gui = LaunchConfiguration("gui")
+
+    args = [
+        DeclareLaunchArgument(
+            "world", default_value=os.path.join(pkg_share, "worlds",
+                                                "arena_lab.world"),
+            description="Gazebo world produced by worldgen.py"),
+        DeclareLaunchArgument(
+            "map", default_value=os.path.join(pkg_share, "maps",
+                                              "arena_lab.yaml"),
+            description="Occupancy map produced by worldgen.py"),
+        DeclareLaunchArgument(
+            "params_file", default_value=os.path.join(pkg_share, "config",
+                                                      "nav2_params.yaml"),
+            description="Nav2 parameters (MPPI controller)"),
+        DeclareLaunchArgument(
+            "gui", default_value="false",
+            description="Gazebo GUI. Keep false for batch runs: headless is "
+                        "roughly 3x faster and Stage 0 is 120 episodes."),
+    ]
+
+    # --- Gazebo ---------------------------------------------------------
+    gzserver = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(gazebo_ros, "launch", "gzserver.launch.py")),
+        launch_arguments={
+            "world": world,
+            "verbose": "false",
+            "extra_gazebo_args": "-s libgazebo_ros_state.so",
+        }.items())
+
+    gzclient = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(gazebo_ros, "launch", "gzclient.launch.py")),
+        condition=IfCondition(gui))
+
+    # --- robot ----------------------------------------------------------
+    tb3_gazebo = get_package_share_directory("turtlebot3_gazebo")
+    robot_state = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(tb3_gazebo, "launch", "robot_state_publisher.launch.py")),
+        launch_arguments={"use_sim_time": "true"}.items())
+
+    # Spawn pose must match the "start" field of worlds/arena_lab.json.
+    spawn = Node(
+        package="gazebo_ros", executable="spawn_entity.py",
+        arguments=["-entity", "burger", "-topic", "robot_description",
+                   "-x", "-1.05", "-y", "-0.92", "-z", "0.01"],
+        output="screen")
+
+    # --- Nav2 -----------------------------------------------------------
+    nav2 = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(nav2_bringup, "launch", "bringup_launch.py")),
+        launch_arguments={
+            "map": map_yaml,
+            "use_sim_time": "true",
+            "params_file": params_file,
+            "autostart": "true",
+        }.items())
+
+    # --- network emulator ------------------------------------------------
+    # Application-layer emulation, NOT tc netem: under simulated time the
+    # /clock stream is delayed alongside the data and measured message age
+    # cancels. See Sec. 5.2 of the manuscript.
+    emulator = Node(
+        package=PKG, executable="network_emulator", name="network_emulator",
+        parameters=[{"use_sim_time": True, "profile": "normal", "seed": 0}],
+        output="screen")
+
+    return LaunchDescription(
+        args + [gzserver, gzclient, robot_state, spawn, nav2, emulator])

@@ -1,0 +1,43 @@
+{
+ "iperf": {
+  "send_bps": 2000508.3876970178,
+  "lost_pct": 0,
+  "recv_bps": 2000508.3876970178,
+  "jitter_ms": 1.5603114388247312
+ },
+ "checks": {
+  "S2_dds_and_data_on_wlan0": true,
+  "S3_ceiling_iperf_2Mbps": true,
+  "S3_one_way_p50_le_10ms": true,
+  "S4_tc_rate_Q1": true,
+  "S4_tc_rate_Q2": true,
+  "S5_realtime_fidelity": true,
+  "S6_makl_decision_p99_le_5ms": true,
+  "all_pilots_valid": true
+ },
+ "decision_time": {
+  "n": 289,
+  "thread_p50_ms": 0.814062,
+  "thread_p99_ms": 1.1332975200000002,
+  "thread_max_ms": 1.205886,
+  "wall_p50_ms": 1.061779,
+  "wall_p99_ms": 1.8197456800000003,
+  "wall_max_ms": 3.940197
+ },
+ "passed": true,
+ "background": {
+  "dur_s": 60.0,
+  "n_samples": 486,
+  "mean_bps": 21593.353859098777,
+  "max_2s_bps": 64768.228242353776,
+  "p90_2s_bps": 64333.62591229777,
+  "snmp_delta": {
+   "Tcp": {
+    "OutSegs": 462
+   },
+   "Udp": {
+    "OutDatagrams": 240
+   }
+  }
+ }
+}

@@ -1,0 +1,205 @@
+{
+ "levels": [
+  0.1,
+  0.15,
+  0.22
+ ],
+ "top_level_reason": "planned",
+ "J_per_speed": {
+  "V010": {
+   "W_viol_anav_unom_b0.2_s": 0.8,
+   "viol_A": 0.8,
+   "F_run": 0.4
+  },
+  "V015": {
+   "W_viol_anav_unom_b0.2_s": 0.8,
+   "viol_A": 0.8,
+   "F_run": 0.4
+  },
+  "V022": {
+   "W_viol_anav_unom_b0.2_s": 0.8,
+   "viol_A": 0.8,
+   "F_run": 0.4
+  }
+ },
+ "M1_MAKL_switching_clearance_rises_with_speed": true,
+ "M2_FixedV_switching_clearance_flat": true,
+ "S0a_speed_implementation": true,
+ "S0b_agreement_at_middle_level_ge_0.95": false,
+ "S0b_mean_agreement": 0.9181,
+ "S1_J": false,
+ "S1_sign": true,
+ "S2_J": true,
+ "S2_sign": true,
+ "D1_J": false,
+ "D1_sign": false,
+ "D2_J": true,
+ "D2_sign": true,
+ "H3_MAKL_violation_not_clearly_above_B7_all_speeds": true,
+ "H3_by_speed": {
+  "V010": true,
+  "V015": true,
+  "V022": true
+ },
+ "H4_MAKL_frames_clearly_above_B7_all_speeds": true,
+ "H4_by_speed": {
+  "V010": true,
+  "V015": true,
+  "V022": true
+ },
+ "H5_no_robot_moving_contact": true,
+ "robot_moving_contacts": 0,
+ "R_B7_DSW_reproduce_J3_at_middle_level": true,
+ "R_detail": {
+  "B7": {
+   "viol": 1.04,
+   "viol_J3": 1.24,
+   "tol_viol": 1.016,
+   "F_W": 2.36,
+   "F_J3": 2.272,
+   "tol_F": 0.4,
+   "ok": true
+  },
+  "DSW_1.0": {
+   "viol": 1.2,
+   "viol_J3": 1.38,
+   "tol_viol": 0.8,
+   "F_W": 2.992,
+   "F_J3": 3.088,
+   "tol_F": 0.71,
+   "ok": true
+  }
+ },
+ "R_MAKL_reported": {
+  "viol": 1.02,
+  "viol_J3": 1.24,
+  "F_W": 3.496,
+  "F_J3": 3.184,
+  "note": "reported only: at the middle level the DWB cap is 0.15 instead of 0.18 m/s, so MAKL speed input is lower than in J3"
+ },
+ "speed_term": "SPEED_TERM_SUPPORTED",
+ "distance_switch": "DSW_ADVANTAGE",
+ "MAKL_MARGIN_TRADEOFF_DEGRADED": false,
+ "phase_of_frame_differences": {
+  "S2": {
+   "F_A": {
+    "mean_diff": 0.1399,
+    "n": 5
+   },
+   "F_B": {
+    "mean_diff": 1.8587,
+    "n": 5
+   },
+   "F_run": {
+    "mean_diff": 0.952,
+    "n": 5
+   }
+  },
+  "D2": {
+   "F_A": {
+    "mean_diff": 1.5839,
+    "n": 5
+   },
+   "F_B": {
+    "mean_diff": 1.9906,
+    "n": 5
+   },
+   "F_run": {
+    "mean_diff": 1.776,
+    "n": 5
+   }
+  },
+  "S_top": {
+   "F_A": {
+    "mean_diff": -0.3039,
+    "n": 5
+   },
+   "F_B": {
+    "mean_diff": -0.3127,
+    "n": 5
+   },
+   "F_run": {
+    "mean_diff": -0.3361,
+    "n": 5
+   }
+  }
+ },
+ "safety_record": {
+  "V010|B7": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 0.76,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5416
+  },
+  "V010|MAKL": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 0.64,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5493
+  },
+  "V010|MAKL_cap": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 0.66,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5413
+  },
+  "V010|DSW_1.0": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 0.56,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5407
+  },
+  "V015|B7": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.42,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5318
+  },
+  "V015|MAKL": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.42,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5306
+  },
+  "V015|MAKL_cap": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.0,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5347
+  },
+  "V015|DSW_1.0": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.28,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5251
+  },
+  "V022|B7": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.82,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5743
+  },
+  "V022|MAKL": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 2.02,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5867
+  },
+  "V022|MAKL_cap": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.84,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.5997
+  },
+  "V022|DSW_1.0": {
+   "robot_moving_contacts": 0,
+   "shield_time_s": 1.84,
+   "wall_safety_ticks": 0,
+   "W_min_clearance_m": 0.572
+  }
+ },
+ "n_runs": 75,
+ "status_counts": {
+  "SUCCEEDED": 75
+ }
+}

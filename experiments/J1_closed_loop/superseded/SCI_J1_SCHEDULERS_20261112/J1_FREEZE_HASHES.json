@@ -1,0 +1,16 @@
+{
+ "frozen_utc": "2026-11-12T14:05:40.500842+00:00",
+ "sha256": {
+  "J1_PROTOCOL_FREEZE.md": "dfb3521e6cdfb76cfcdf45f8f85544189dd522704136f2d574766e24eea763fb",
+  "JALANKAN_J1.sh": "efe45db2b9fa60bb67891a02baebb8fe8390defbca557b3998cee5d8b2f38c25",
+  "README.md": "e6c4dff3d4800f20584d477a437ad0c4245b698e48d1e23e43a1a7437ed61131",
+  "j1_analysis.py": "1b4c85fd7d029cc54712bf523945204c42ba4058d672a29f3397dd18b3b655ed",
+  "j1_bridge.py": "f9f1b40789f0986c0ca29985667a5fff5d71782d0654be5eaa916101e5f95566",
+  "j1_links.py": "03af2c1e2b99b919d925d525863a2e8f6de7bec0f0f51e88921178a6cf0fe0ad",
+  "j1_metrics.py": "5068cfcb233f6d34dcbc1fa3f2fad6cb6cd4b338c8e883d129b40289adb2c72d",
+  "j1_run_all.py": "1e2ca83dae6c77da992756adc8d79dcdd4cf5da414da074338f07ad747ba7dde",
+  "j1_run_trial.py": "c86b058bd0153618b6835679cd8fb3e6830d4f8f1a9b0cfc2a44a959a4306c84",
+  "tests/j1_run_trial_edits.py": "cb5423956b99744927abf35d6f35a48a0d0f64d236166e8f7df5c6884a67d81d",
+  "tests/test_j1_offline.py": "71b88115166a7717d34df175a757bbef99a87073aafcfad0f9680a1dd1e0e3ca"
+ }
+}

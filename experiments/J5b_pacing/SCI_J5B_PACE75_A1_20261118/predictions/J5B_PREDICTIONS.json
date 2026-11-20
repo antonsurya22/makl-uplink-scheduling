@@ -1,0 +1,518 @@
+{
+"cells": {
+"Q1|A|B0": [
+{
+"F_fps": 0.6,
+"alink_p95_s": 1.3931,
+"rep": 1,
+"viol_s": 13.7
+},
+{
+"F_fps": 0.44,
+"alink_p95_s": 1.2141,
+"rep": 2,
+"viol_s": 13.2
+},
+{
+"F_fps": 0.44,
+"alink_p95_s": 1.2055,
+"rep": 3,
+"viol_s": 13.0
+},
+{
+"F_fps": 0.56,
+"alink_p95_s": 1.2235,
+"rep": 4,
+"viol_s": 12.8
+},
+{
+"F_fps": 0.64,
+"alink_p95_s": 1.3932,
+"rep": 5,
+"viol_s": 13.0
+}
+],
+"Q1|A|B3": [
+{
+"F_fps": 3.36,
+"alink_p95_s": 0.8223,
+"rep": 1,
+"viol_s": 3.6
+},
+{
+"F_fps": 2.2,
+"alink_p95_s": 0.4843,
+"rep": 2,
+"viol_s": 1.2
+},
+{
+"F_fps": 2.24,
+"alink_p95_s": 0.479,
+"rep": 3,
+"viol_s": 1.3
+},
+{
+"F_fps": 2.32,
+"alink_p95_s": 0.497,
+"rep": 4,
+"viol_s": 1.1
+},
+{
+"F_fps": 3.28,
+"alink_p95_s": 0.8098,
+"rep": 5,
+"viol_s": 2.8
+}
+],
+"Q1|A|B7": [
+{
+"F_fps": 2.28,
+"alink_p95_s": 0.5706,
+"rep": 1,
+"viol_s": 1.7
+},
+{
+"F_fps": 2.2,
+"alink_p95_s": 0.4844,
+"rep": 2,
+"viol_s": 1.2
+},
+{
+"F_fps": 2.24,
+"alink_p95_s": 0.4794,
+"rep": 3,
+"viol_s": 1.3
+},
+{
+"F_fps": 2.32,
+"alink_p95_s": 0.498,
+"rep": 4,
+"viol_s": 1.1
+},
+{
+"F_fps": 2.28,
+"alink_p95_s": 0.5638,
+"rep": 5,
+"viol_s": 1.2
+}
+],
+"Q1|A|MAKL": [
+{
+"F_fps": 2.92,
+"alink_p95_s": 0.6968,
+"rep": 1,
+"viol_s": 1.7
+},
+{
+"F_fps": 3.2,
+"alink_p95_s": 0.7334,
+"rep": 2,
+"viol_s": 1.3
+},
+{
+"F_fps": 3.2,
+"alink_p95_s": 0.7192,
+"rep": 3,
+"viol_s": 1.1
+},
+{
+"F_fps": 3.24,
+"alink_p95_s": 0.7106,
+"rep": 4,
+"viol_s": 1.2
+},
+{
+"F_fps": 2.8,
+"alink_p95_s": 0.6863,
+"rep": 5,
+"viol_s": 1.2
+}
+],
+"Q1|NP75|B0": [
+{
+"F_fps": 0.2,
+"alink_p95_s": 1.4599,
+"rep": 1,
+"viol_s": 13.9
+},
+{
+"F_fps": 0.16,
+"alink_p95_s": 1.2793,
+"rep": 2,
+"viol_s": 13.5
+},
+{
+"F_fps": 0.16,
+"alink_p95_s": 1.2738,
+"rep": 3,
+"viol_s": 13.1
+},
+{
+"F_fps": 0.2,
+"alink_p95_s": 1.2916,
+"rep": 4,
+"viol_s": 13.1
+},
+{
+"F_fps": 0.24,
+"alink_p95_s": 1.4603,
+"rep": 5,
+"viol_s": 13.1
+}
+],
+"Q1|NP75|B3": [
+{
+"F_fps": 2.84,
+"alink_p95_s": 2.0915,
+"rep": 1,
+"viol_s": 8.6
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.5883,
+"rep": 2,
+"viol_s": 1.6
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.5694,
+"rep": 3,
+"viol_s": 1.7
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.6012,
+"rep": 4,
+"viol_s": 1.2
+},
+{
+"F_fps": 2.92,
+"alink_p95_s": 2.1119,
+"rep": 5,
+"viol_s": 8.2
+}
+],
+"Q1|NP75|B7": [
+{
+"F_fps": 0.8,
+"alink_p95_s": 0.6814,
+"rep": 1,
+"viol_s": 2.0
+},
+{
+"F_fps": 0.68,
+"alink_p95_s": 0.5788,
+"rep": 2,
+"viol_s": 1.5
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.5729,
+"rep": 3,
+"viol_s": 1.7
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.6023,
+"rep": 4,
+"viol_s": 1.2
+},
+{
+"F_fps": 0.72,
+"alink_p95_s": 0.6658,
+"rep": 5,
+"viol_s": 1.4
+}
+],
+"Q1|NP75|MAKL": [
+{
+"F_fps": 1.44,
+"alink_p95_s": 0.9679,
+"rep": 1,
+"viol_s": 2.4
+},
+{
+"F_fps": 1.72,
+"alink_p95_s": 0.8908,
+"rep": 2,
+"viol_s": 1.4
+},
+{
+"F_fps": 1.52,
+"alink_p95_s": 0.9042,
+"rep": 3,
+"viol_s": 1.8
+},
+{
+"F_fps": 1.64,
+"alink_p95_s": 0.8167,
+"rep": 4,
+"viol_s": 1.2
+},
+{
+"F_fps": 1.4,
+"alink_p95_s": 0.9489,
+"rep": 5,
+"viol_s": 1.6
+}
+],
+"Q2|A|B0": [
+{
+"F_fps": 0.24,
+"alink_p95_s": 4.7987,
+"rep": 1,
+"viol_s": 13.3
+},
+{
+"F_fps": 0.24,
+"alink_p95_s": 4.827,
+"rep": 2,
+"viol_s": 13.4
+},
+{
+"F_fps": 0.2,
+"alink_p95_s": 4.6518,
+"rep": 3,
+"viol_s": 13.1
+},
+{
+"F_fps": 0.24,
+"alink_p95_s": 4.8821,
+"rep": 4,
+"viol_s": 13.3
+},
+{
+"F_fps": 0.2,
+"alink_p95_s": 4.7536,
+"rep": 5,
+"viol_s": 12.9
+}
+],
+"Q2|A|B3": [
+{
+"F_fps": 1.56,
+"alink_p95_s": 0.7842,
+"rep": 1,
+"viol_s": 2.3
+},
+{
+"F_fps": 1.56,
+"alink_p95_s": 0.791,
+"rep": 2,
+"viol_s": 2.6
+},
+{
+"F_fps": 1.6,
+"alink_p95_s": 0.706,
+"rep": 3,
+"viol_s": 1.9
+},
+{
+"F_fps": 1.6,
+"alink_p95_s": 0.7887,
+"rep": 4,
+"viol_s": 2.3
+},
+{
+"F_fps": 1.56,
+"alink_p95_s": 0.6937,
+"rep": 5,
+"viol_s": 1.6
+}
+],
+"Q2|A|B7": [
+{
+"F_fps": 0.4,
+"alink_p95_s": 0.6402,
+"rep": 1,
+"viol_s": 2.0
+},
+{
+"F_fps": 0.4,
+"alink_p95_s": 0.6455,
+"rep": 2,
+"viol_s": 2.2
+},
+{
+"F_fps": 0.4,
+"alink_p95_s": 0.5593,
+"rep": 3,
+"viol_s": 2.2
+},
+{
+"F_fps": 0.4,
+"alink_p95_s": 0.6509,
+"rep": 4,
+"viol_s": 1.7
+},
+{
+"F_fps": 0.44,
+"alink_p95_s": 0.5561,
+"rep": 5,
+"viol_s": 1.2
+}
+],
+"Q2|A|MAKL": [
+{
+"F_fps": 0.6,
+"alink_p95_s": 0.665,
+"rep": 1,
+"viol_s": 1.7
+},
+{
+"F_fps": 0.68,
+"alink_p95_s": 0.679,
+"rep": 2,
+"viol_s": 1.9
+},
+{
+"F_fps": 0.8,
+"alink_p95_s": 0.6218,
+"rep": 3,
+"viol_s": 1.6
+},
+{
+"F_fps": 0.68,
+"alink_p95_s": 0.6855,
+"rep": 4,
+"viol_s": 1.7
+},
+{
+"F_fps": 0.88,
+"alink_p95_s": 0.6224,
+"rep": 5,
+"viol_s": 1.2
+}
+],
+"Q2|NP75|B0": [
+{
+"F_fps": 0.08,
+"alink_p95_s": 9.6568,
+"rep": 1,
+"viol_s": 14.3
+},
+{
+"F_fps": 0.08,
+"alink_p95_s": 9.6535,
+"rep": 2,
+"viol_s": 14.5
+},
+{
+"F_fps": 0.04,
+"alink_p95_s": 9.4809,
+"rep": 3,
+"viol_s": 14.2
+},
+{
+"F_fps": 0.08,
+"alink_p95_s": 9.7137,
+"rep": 4,
+"viol_s": 14.1
+},
+{
+"F_fps": 0.04,
+"alink_p95_s": 9.4516,
+"rep": 5,
+"viol_s": 13.8
+}
+],
+"Q2|NP75|B3": [
+{
+"F_fps": 1.56,
+"alink_p95_s": 1.0281,
+"rep": 1,
+"viol_s": 5.8
+},
+{
+"F_fps": 1.56,
+"alink_p95_s": 1.0177,
+"rep": 2,
+"viol_s": 5.9
+},
+{
+"F_fps": 1.6,
+"alink_p95_s": 0.9367,
+"rep": 3,
+"viol_s": 5.2
+},
+{
+"F_fps": 1.6,
+"alink_p95_s": 1.0184,
+"rep": 4,
+"viol_s": 5.6
+},
+{
+"F_fps": 1.56,
+"alink_p95_s": 0.9309,
+"rep": 5,
+"viol_s": 3.9
+}
+],
+"Q2|NP75|B7": [
+{
+"F_fps": 0.0,
+"alink_p95_s": 0.7729,
+"rep": 1,
+"viol_s": 3.2
+},
+{
+"F_fps": 0.04,
+"alink_p95_s": 0.7769,
+"rep": 2,
+"viol_s": 3.1
+},
+{
+"F_fps": 0.04,
+"alink_p95_s": 0.6887,
+"rep": 3,
+"viol_s": 2.3
+},
+{
+"F_fps": 0.04,
+"alink_p95_s": 0.7807,
+"rep": 4,
+"viol_s": 2.8
+},
+{
+"F_fps": 0.0,
+"alink_p95_s": 0.6849,
+"rep": 5,
+"viol_s": 1.6
+}
+],
+"Q2|NP75|MAKL": [
+{
+"F_fps": 0.32,
+"alink_p95_s": 0.8534,
+"rep": 1,
+"viol_s": 3.1
+},
+{
+"F_fps": 0.36,
+"alink_p95_s": 0.8607,
+"rep": 2,
+"viol_s": 3.1
+},
+{
+"F_fps": 0.36,
+"alink_p95_s": 0.7681,
+"rep": 3,
+"viol_s": 2.5
+},
+{
+"F_fps": 0.4,
+"alink_p95_s": 0.8788,
+"rep": 4,
+"viol_s": 2.7
+},
+{
+"F_fps": 0.36,
+"alink_p95_s": 0.8316,
+"rep": 5,
+"viol_s": 1.5
+}
+]
+},
+"pace": 0.75,
+"source": "frozen J5 replay core, virtual clock, delay 0"
+}

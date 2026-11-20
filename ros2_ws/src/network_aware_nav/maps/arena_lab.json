@@ -1,0 +1,23 @@
+{
+  "name": "arena_lab",
+  "kind": "eval_hardware",
+  "seed": null,
+  "size_m": [
+    2.73,
+    2.37
+  ],
+  "start": [
+    -1.05,
+    -0.92,
+    0.0
+  ],
+  "goal": [
+    1.05,
+    0.92,
+    0.0
+  ],
+  "geodesic_path_length_m": 6.95,
+  "n_obstacles": 0,
+  "map_resolution": 0.05,
+  "robot_radius": 0.14
+}

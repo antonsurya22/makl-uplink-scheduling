@@ -1,0 +1,85 @@
+{
+ "H1_noninferior_violation_vs_B7_all_congested_cells": true,
+ "H1_cells": {
+  "LC-Q2-25s": true,
+  "LC-Q2-8s": true,
+  "LB-Q1-25s": true,
+  "LB-Q1-8s": true
+ },
+ "H1b_violation_below_B3_25s_cells": false,
+ "H1b_cells": {
+  "LC-Q2-25s": false,
+  "LB-Q1-25s": false
+ },
+ "H2a_camera_above_B7_Q1_cells": true,
+ "H2a_cells": {
+  "LB-Q1-25s": true,
+  "LB-Q1-8s": true
+ },
+ "H2b_camera_above_B7_Q2_cells": true,
+ "H2b_cells": {
+  "LC-Q2-25s": true,
+  "LC-Q2-8s": true
+ },
+ "H3_violation_below_B4_and_B5_25s_cells": false,
+ "H3_cells": {
+  "LC-Q2-25s": false,
+  "LB-Q1-25s": false
+ },
+ "H4a_no_robot_moving_contact_MAKL": true,
+ "H4a_MAKL_robot_moving_contacts": 0,
+ "H4b_P1_and_clearance_not_different_from_C0": true,
+ "H4b_cells": {
+  "LC-Q2-25s": true,
+  "LC-Q2-8s": true,
+  "LB-Q1-25s": true,
+  "LB-Q1-8s": true
+ },
+ "R_anchor_B0_B3_reproduce_E6": true,
+ "R_detail": {
+  "B0": {
+   "J1": 5.0544,
+   "E6": 4.671,
+   "within_0.5s": true
+  },
+  "B1": {
+   "J1": 1.7384,
+   "E6": 2.032,
+   "within_0.5s": true
+  },
+  "B2": {
+   "J1": 0.4984,
+   "E6": 0.807,
+   "within_0.5s": true
+  },
+  "B3": {
+   "J1": 0.8616,
+   "E6": 0.764,
+   "within_0.5s": true
+  }
+ },
+ "P_check_B7_bound": {
+  "LC-Q2-25s": {
+   "B7_clipped_p95_s": 0.5776,
+   "a_min_s": 0.575,
+   "pipeline_offset_from_C0_s": 0.0398,
+   "bound_s": 0.6148,
+   "holds": true,
+   "camera_payload_mean_B": 2713.2
+  },
+  "LB-Q1-25s": {
+   "B7_clipped_p95_s": 0.4776,
+   "a_min_s": 0.4907,
+   "pipeline_offset_from_C0_s": 0.0126,
+   "bound_s": 0.5033,
+   "holds": true,
+   "camera_payload_mean_B": 3007.7
+  }
+ },
+ "outcome": "MAKL_SUPPORTED",
+ "n_runs": 240,
+ "status_counts": {
+  "SUCCEEDED": 240
+ },
+ "robot_moving_contacts_all": 0
+}

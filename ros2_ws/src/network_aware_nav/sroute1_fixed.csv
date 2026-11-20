@@ -1,0 +1,4 @@
+policy,profile,episode,success,collision,nav_time,path_len,min_obs_dist,note
+default,normal,0,1,0,163.5,9.333,0.12,
+default,severe,0,0,0,,0.011,0.248,nav_aborted_P1
+conservative,severe,0,0,0,,0.413,0.246,nav_aborted_P1

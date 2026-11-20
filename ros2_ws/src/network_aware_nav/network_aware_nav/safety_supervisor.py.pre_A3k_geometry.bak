@@ -1,0 +1,797 @@
+#!/usr/bin/env python3
+
+import math
+
+import rclpy
+from rclpy.node import Node
+
+from std_msgs.msg import (
+    UInt8,
+    Bool,
+    String,
+    Float32,
+)
+
+from naw_interfaces.msg import RobotState
+
+from rclpy.qos import (
+    QoSProfile,
+    ReliabilityPolicy,
+    DurabilityPolicy,
+    HistoryPolicy,
+)
+
+
+class SafetySupervisor(Node):
+    """
+    A3k model-based Safety Supervisor.
+
+    Action encoding:
+      action 0..2 -> NORMAL    + QoS 0..2
+      action 3..5 -> SLOW      + QoS 0..2
+      action 6..8 -> SAFE-STOP + QoS 0..2
+
+    Safety model:
+
+      d_required =
+          v * (a + Delta_t)
+          + v^2 / (2*b)
+          + d_margin
+
+      safe iff:
+
+          d_obstacle >
+              d_hard + d_required
+
+    where:
+      a = effective runtime AoI
+      v = conservative evaluation speed
+
+    Collision Monitor remains the independent
+    low-level raw-LiDAR fail-safe.
+    """
+
+    NUM_QOS = 3
+    NUM_ACTIONS = 9
+
+    NORMAL_MODE = 0
+    SLOW_MODE = 1
+    STOP_MODE = 2
+
+    def __init__(self):
+        super().__init__('safety_supervisor')
+
+        # ------------------------------------------------------
+        # A3k parameters
+        # ------------------------------------------------------
+
+        self.declare_parameter(
+            'audit_only',
+            True
+        )
+
+        # Frozen / implementation calibration values.
+        self.declare_parameter(
+            'braking_decel',
+            0.64
+        )
+
+        self.declare_parameter(
+            'delta_t',
+            0.023
+        )
+
+        self.declare_parameter(
+            'd_margin',
+            0.0
+        )
+
+        self.declare_parameter(
+            'd_hard',
+            0.31
+        )
+
+        self.declare_parameter(
+            'normal_speed',
+            0.22
+        )
+
+        self.declare_parameter(
+            'slow_speed',
+            0.08
+        )
+
+        # RobotState is expected at 20 Hz.
+        self.declare_parameter(
+            'state_timeout',
+            0.25
+        )
+
+        self.declare_parameter(
+            'watchdog_rate',
+            20.0
+        )
+
+        self.audit_only = bool(
+            self.get_parameter(
+                'audit_only'
+            ).value
+        )
+
+        self.b = float(
+            self.get_parameter(
+                'braking_decel'
+            ).value
+        )
+
+        self.delta_t = float(
+            self.get_parameter(
+                'delta_t'
+            ).value
+        )
+
+        self.d_margin = float(
+            self.get_parameter(
+                'd_margin'
+            ).value
+        )
+
+        self.d_hard = float(
+            self.get_parameter(
+                'd_hard'
+            ).value
+        )
+
+        self.normal_speed = float(
+            self.get_parameter(
+                'normal_speed'
+            ).value
+        )
+
+        self.slow_speed = float(
+            self.get_parameter(
+                'slow_speed'
+            ).value
+        )
+
+        self.state_timeout = float(
+            self.get_parameter(
+                'state_timeout'
+            ).value
+        )
+
+        watchdog_rate = float(
+            self.get_parameter(
+                'watchdog_rate'
+            ).value
+        )
+
+        if self.b <= 0.0:
+            raise ValueError(
+                'braking_decel must be > 0'
+            )
+
+        if self.delta_t < 0.0:
+            raise ValueError(
+                'delta_t must be >= 0'
+            )
+
+        if self.d_hard <= 0.0:
+            raise ValueError(
+                'd_hard must be > 0'
+            )
+
+        if self.state_timeout <= 0.0:
+            raise ValueError(
+                'state_timeout must be > 0'
+            )
+
+        # ------------------------------------------------------
+        # QoS
+        # ------------------------------------------------------
+
+        command_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+        )
+
+        diagnostic_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+
+        robot_state_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+        )
+
+        # ------------------------------------------------------
+        # Inputs
+        # ------------------------------------------------------
+
+        self.action_sub = self.create_subscription(
+            UInt8,
+            '/action_requested',
+            self.action_callback,
+            command_qos,
+        )
+
+        self.state_sub = self.create_subscription(
+            RobotState,
+            '/robot_state',
+            self.state_callback,
+            robot_state_qos,
+        )
+
+        # ------------------------------------------------------
+        # Outputs
+        # ------------------------------------------------------
+
+        self.action_cmd_pub = self.create_publisher(
+            UInt8,
+            '/action_cmd',
+            command_qos,
+        )
+
+        self.executed_pub = self.create_publisher(
+            UInt8,
+            '/action_executed',
+            diagnostic_qos,
+        )
+
+        # Actual override applied to /action_cmd.
+        self.override_pub = self.create_publisher(
+            Bool,
+            '/safety_override',
+            diagnostic_qos,
+        )
+
+        # Useful while audit_only=true.
+        self.would_override_pub = self.create_publisher(
+            Bool,
+            '/safety_would_override',
+            diagnostic_qos,
+        )
+
+        self.reason_pub = self.create_publisher(
+            String,
+            '/safety_reason',
+            diagnostic_qos,
+        )
+
+        # Model diagnostics.
+        self.effective_age_pub = self.create_publisher(
+            Float32,
+            '/safety_effective_age',
+            diagnostic_qos,
+        )
+
+        self.age_crit_pub = self.create_publisher(
+            Float32,
+            '/safety_age_crit',
+            diagnostic_qos,
+        )
+
+        self.guard_distance_pub = self.create_publisher(
+            Float32,
+            '/safety_guard_distance',
+            diagnostic_qos,
+        )
+
+        self.guard_margin_pub = self.create_publisher(
+            Float32,
+            '/safety_guard_margin',
+            diagnostic_qos,
+        )
+
+        # ------------------------------------------------------
+        # Runtime state
+        # ------------------------------------------------------
+
+        self.latest_state = None
+        self.last_requested = None
+        self.last_executed = None
+        self.last_diag_signature = None
+
+        period = (
+            1.0 /
+            max(1.0, watchdog_rate)
+        )
+
+        self.create_timer(
+            period,
+            self.watchdog_callback,
+        )
+
+        mode = (
+            'AUDIT ONLY'
+            if self.audit_only
+            else 'ENFORCEMENT'
+        )
+
+        self.get_logger().warning(
+            f'A3k Safety Supervisor started: {mode}; '
+            f'b={self.b:.3f} m/s^2, '
+            f'delta_t={self.delta_t:.3f} s, '
+            f'd_margin={self.d_margin:.3f} m, '
+            f'd_hard={self.d_hard:.3f} m'
+        )
+
+    # ----------------------------------------------------------
+    # Utilities
+    # ----------------------------------------------------------
+
+    def now_ns(self):
+        return (
+            self.get_clock()
+            .now()
+            .nanoseconds
+        )
+
+    @staticmethod
+    def stamp_ns(stamp):
+        return (
+            int(stamp.sec) * 1_000_000_000
+            + int(stamp.nanosec)
+        )
+
+    def state_age(self):
+        if self.latest_state is None:
+            return float('inf')
+
+        t_state = self.stamp_ns(
+            self.latest_state.header.stamp
+        )
+
+        if t_state <= 0:
+            return float('inf')
+
+        return max(
+            0.0,
+            (
+                self.now_ns()
+                - t_state
+            ) / 1e9
+        )
+
+    def stop_action(self, requested):
+        qos = (
+            requested
+            % self.NUM_QOS
+        )
+
+        return (
+            self.STOP_MODE
+            * self.NUM_QOS
+            + qos
+        )
+
+    def requested_nominal_speed(
+        self,
+        requested
+    ):
+        nav_mode = (
+            requested
+            // self.NUM_QOS
+        )
+
+        if nav_mode == self.NORMAL_MODE:
+            return self.normal_speed
+
+        if nav_mode == self.SLOW_MODE:
+            return self.slow_speed
+
+        return 0.0
+
+    # ----------------------------------------------------------
+    # Input callbacks
+    # ----------------------------------------------------------
+
+    def state_callback(
+        self,
+        msg: RobotState
+    ):
+        self.latest_state = msg
+
+        if self.last_requested is not None:
+            self.evaluate_and_publish(
+                force_command=False
+            )
+
+    def action_callback(
+        self,
+        msg: UInt8
+    ):
+        requested = int(
+            msg.data
+        )
+
+        if (
+            requested < 0
+            or requested >= self.NUM_ACTIONS
+        ):
+            self.get_logger().error(
+                f'Rejected invalid '
+                f'action={requested}; '
+                f'valid range=0..8'
+            )
+            return
+
+        self.last_requested = requested
+
+        self.evaluate_and_publish(
+            force_command=True
+        )
+
+    def watchdog_callback(self):
+        if self.last_requested is None:
+            return
+
+        self.evaluate_and_publish(
+            force_command=False
+        )
+
+    # ----------------------------------------------------------
+    # Safety model
+    # ----------------------------------------------------------
+
+    def evaluate(self):
+        requested = self.last_requested
+
+        if requested is None:
+            return None
+
+        nav_mode = (
+            requested
+            // self.NUM_QOS
+        )
+
+        # Explicit requested safe-stop never needs overriding.
+        if nav_mode == self.STOP_MODE:
+            return {
+                'safe_action': requested,
+                'would_override': False,
+                'reason': 'requested_safe_stop',
+                'effective_age': float('nan'),
+                'age_crit': float('nan'),
+                'guard_distance': self.d_hard,
+                'guard_margin': float('nan'),
+            }
+
+        stop = self.stop_action(
+            requested
+        )
+
+        if self.latest_state is None:
+            return {
+                'safe_action': stop,
+                'would_override': True,
+                'reason': 'no_robot_state',
+                'effective_age': float('nan'),
+                'age_crit': float('nan'),
+                'guard_distance': float('nan'),
+                'guard_margin': float('nan'),
+            }
+
+        state_age = self.state_age()
+
+        if (
+            not math.isfinite(state_age)
+            or state_age > self.state_timeout
+        ):
+            return {
+                'safe_action': stop,
+                'would_override': True,
+                'reason': 'robot_state_stale',
+                'effective_age': float('nan'),
+                'age_crit': float('nan'),
+                'guard_distance': float('nan'),
+                'guard_margin': float('nan'),
+            }
+
+        scan_age = float(
+            self.latest_state.scan_age
+        )
+
+        distance = float(
+            self.latest_state.dist_obstacle
+        )
+
+        measured_speed = abs(
+            float(
+                self.latest_state.speed
+            )
+        )
+
+        values = [
+            scan_age,
+            distance,
+            measured_speed,
+        ]
+
+        if not all(
+            math.isfinite(x)
+            for x in values
+        ):
+            return {
+                'safe_action': stop,
+                'would_override': True,
+                'reason': 'invalid_safety_state',
+                'effective_age': float('nan'),
+                'age_crit': float('nan'),
+                'guard_distance': float('nan'),
+                'guard_margin': float('nan'),
+            }
+
+        # RobotState.scan_age was evaluated at RobotState.header.stamp.
+        # Add elapsed time since that state was published.
+        effective_age = max(
+            0.0,
+            scan_age + state_age
+        )
+
+        nominal_speed = (
+            self.requested_nominal_speed(
+                requested
+            )
+        )
+
+        # Conservative candidate-action evaluation:
+        # never assume instantaneous deceleration to a lower mode.
+        v = max(
+            measured_speed,
+            nominal_speed
+        )
+
+        braking_term = (
+            v * v
+            / (2.0 * self.b)
+        )
+
+        dynamic_required = (
+            v
+            * (
+                effective_age
+                + self.delta_t
+            )
+            + braking_term
+            + self.d_margin
+        )
+
+        # Protected geometric envelope + stopping requirement.
+        guard_distance = (
+            self.d_hard
+            + dynamic_required
+        )
+
+        guard_margin = (
+            distance
+            - guard_distance
+        )
+
+        if v > 1e-6:
+            age_crit = (
+                (
+                    distance
+                    - self.d_hard
+                    - self.d_margin
+                    - braking_term
+                ) / v
+                - self.delta_t
+            )
+        else:
+            age_crit = float('inf')
+
+        if distance <= self.d_hard:
+            return {
+                'safe_action': stop,
+                'would_override': True,
+                'reason': 'hard_distance_guard',
+                'effective_age': effective_age,
+                'age_crit': age_crit,
+                'guard_distance': guard_distance,
+                'guard_margin': guard_margin,
+            }
+
+        if guard_margin <= 0.0:
+            return {
+                'safe_action': stop,
+                'would_override': True,
+                'reason': 'dynamic_stopping_guard',
+                'effective_age': effective_age,
+                'age_crit': age_crit,
+                'guard_distance': guard_distance,
+                'guard_margin': guard_margin,
+            }
+
+        return {
+            'safe_action': requested,
+            'would_override': False,
+            'reason': 'safe_pass',
+            'effective_age': effective_age,
+            'age_crit': age_crit,
+            'guard_distance': guard_distance,
+            'guard_margin': guard_margin,
+        }
+
+    # ----------------------------------------------------------
+    # Output
+    # ----------------------------------------------------------
+
+    def publish_float(
+        self,
+        publisher,
+        value
+    ):
+        msg = Float32()
+        msg.data = float(value)
+        publisher.publish(msg)
+
+    def evaluate_and_publish(
+        self,
+        force_command=False
+    ):
+        result = self.evaluate()
+
+        if result is None:
+            return
+
+        requested = (
+            self.last_requested
+        )
+
+        safe_action = int(
+            result['safe_action']
+        )
+
+        would_override = bool(
+            result['would_override']
+        )
+
+        if self.audit_only:
+            executed = requested
+            actual_override = False
+
+            if would_override:
+                reason = (
+                    'audit_would_override:'
+                    + result['reason']
+                )
+            else:
+                reason = (
+                    'audit_pass:'
+                    + result['reason']
+                )
+        else:
+            executed = safe_action
+            actual_override = (
+                executed != requested
+            )
+            reason = result['reason']
+
+        # Continuous model diagnostics.
+        self.publish_float(
+            self.effective_age_pub,
+            result['effective_age']
+        )
+
+        self.publish_float(
+            self.age_crit_pub,
+            result['age_crit']
+        )
+
+        self.publish_float(
+            self.guard_distance_pub,
+            result['guard_distance']
+        )
+
+        self.publish_float(
+            self.guard_margin_pub,
+            result['guard_margin']
+        )
+
+        signature = (
+            requested,
+            executed,
+            would_override,
+            actual_override,
+            reason,
+        )
+
+        # Command publication is event/change driven.
+        if (
+            force_command
+            or self.last_executed != executed
+        ):
+            cmd = UInt8()
+            cmd.data = int(executed)
+            self.action_cmd_pub.publish(
+                cmd
+            )
+
+            executed_msg = UInt8()
+            executed_msg.data = int(
+                executed
+            )
+            self.executed_pub.publish(
+                executed_msg
+            )
+
+            self.last_executed = executed
+
+        # Diagnostics update when the decision changes.
+        if (
+            force_command
+            or signature
+            != self.last_diag_signature
+        ):
+            override_msg = Bool()
+            override_msg.data = bool(
+                actual_override
+            )
+            self.override_pub.publish(
+                override_msg
+            )
+
+            would_msg = Bool()
+            would_msg.data = bool(
+                would_override
+            )
+            self.would_override_pub.publish(
+                would_msg
+            )
+
+            reason_msg = String()
+            reason_msg.data = reason
+            self.reason_pub.publish(
+                reason_msg
+            )
+
+            self.get_logger().info(
+                f'requested={requested} '
+                f'safe_action={safe_action} '
+                f'executed={executed} '
+                f'would_override={would_override} '
+                f'actual_override={actual_override} '
+                f'reason={reason} '
+                f'a_eff='
+                f'{result["effective_age"]:.3f}s '
+                f'a_crit='
+                f'{result["age_crit"]:.3f}s '
+                f'd_guard='
+                f'{result["guard_distance"]:.3f}m '
+                f'margin='
+                f'{result["guard_margin"]:.3f}m'
+            )
+
+            self.last_diag_signature = (
+                signature
+            )
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = SafetySupervisor()
+
+    try:
+        rclpy.spin(node)
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        node.destroy_node()
+
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,236 @@
+<sdf version="1.6">
+  <world name="arena_lab">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <scene>
+      <ambient>0.5 0.5 0.5 1</ambient>
+      <shadows>false</shadows>
+    </scene>
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <gui>
+      <camera name="user_camera">
+        <pose>0 0 3.276 0 1.5707 1.5707</pose>
+      </camera>
+    </gui>
+    <model name="walls">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 1.2350 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.9300 0.1000 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 1.2350 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.9300 0.1000 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision_1">
+          <pose>0.0000 -1.2350 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.9300 0.1000 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_1">
+          <pose>0.0000 -1.2350 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>2.9300 0.1000 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision_2">
+          <pose>-1.4150 0.0000 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.1000 2.5700 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_2">
+          <pose>-1.4150 0.0000 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.1000 2.5700 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision_3">
+          <pose>1.4150 0.0000 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.1000 2.5700 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_3">
+          <pose>1.4150 0.0000 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.1000 2.5700 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision_4">
+          <pose>-0.4100 -0.3600 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.9100 0.1000 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_4">
+          <pose>-0.4100 -0.3600 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.9100 0.1000 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision_5">
+          <pose>0.4100 0.3600 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.9100 0.1000 0.8000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_5">
+          <pose>0.4100 0.3600 0.4000 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1.9100 0.1000 0.8000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Grey</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name="obstacle_0">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.2500 0.2500 0.5000</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>0.2500 0.2500 0.5000</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Orange</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+      <pose>-0.2000 -1.0600 0 0 0 0</pose>
+    </model>
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros>
+        <namespace>/</namespace>
+      </ros>
+      <update_rate>50.0</update_rate>
+    </plugin>
+    <model name="dynamic_pedestrian">
+      <static>false</static>
+      <pose>5.0 5.0 0.30 0 0 0</pose>
+      <link name="body">
+        <gravity>false</gravity>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.09</radius>
+              <length>0.60</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.09</radius>
+              <length>0.60</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.8 0.1 0.1 1</ambient>
+            <diffuse>0.8 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <sensor name="pedestrian_contact_sensor" type="contact">
+          <always_on>true</always_on>
+          <update_rate>100.0</update_rate>
+          <contact>
+            <collision>collision</collision>
+          </contact>
+          <plugin name="pedestrian_contact_plugin" filename="libgazebo_ros_bumper.so">
+            <ros>
+              <namespace>/dynamic_pedestrian</namespace>
+              <remapping>bumper_states:=contacts</remapping>
+            </ros>
+            <frame_name>world</frame_name>
+          </plugin>
+        </sensor>
+      </link>
+    </model>
+  </world>
+</sdf>

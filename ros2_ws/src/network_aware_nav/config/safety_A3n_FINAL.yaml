@@ -1,0 +1,48 @@
+robot_state_monitor:
+  ros__parameters:
+    use_sim_time: true
+
+    # A3j runtime safety-state publication
+    publish_rate: 20.0
+
+    # Local source freshness
+    source_timeout: 2.0
+    goal_feedback_timeout: 2.0
+
+
+safety_supervisor:
+  ros__parameters:
+    use_sim_time: true
+
+    # A3m:
+    # Final experiment configuration uses real enforcement.
+    audit_only: false
+
+    # A3e braking calibration
+    braking_decel: 0.64
+
+    # A3f command/safety latency
+    delta_t: 0.023
+
+    # A3h residual calibration
+    d_margin: 0.0
+
+    # A3i radial hard guard
+    d_hard: 0.31
+
+    # Navigation operating modes
+    normal_speed: 0.22
+    slow_speed: 0.08
+
+    # Runtime freshness / watchdog
+    state_timeout: 0.25
+    scan_timeout: 0.50
+    watchdog_rate: 20.0
+
+    # A3l controlled recovery
+    recovery_hold: 1.0
+
+    # TurtleBot3 Burger / LiDAR geometry
+    lidar_x: -0.032
+    front_x: 0.22
+    half_width: 0.18

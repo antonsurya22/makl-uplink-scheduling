@@ -1,0 +1,1007 @@
+#!/usr/bin/env python3
+
+import math
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (
+    QoSProfile,
+    ReliabilityPolicy,
+    DurabilityPolicy,
+    HistoryPolicy,
+    qos_profile_sensor_data,
+)
+
+from std_msgs.msg import UInt8, Bool, String, Float32
+from sensor_msgs.msg import LaserScan
+from naw_interfaces.msg import RobotState
+
+
+class SafetySupervisor(Node):
+
+    NUM_QOS = 3
+    NUM_ACTIONS = 9
+
+    NORMAL_MODE = 0
+    SLOW_MODE = 1
+    STOP_MODE = 2
+
+    def __init__(self):
+        super().__init__('safety_supervisor')
+
+        # ------------------------------------------------------
+        # Parameters
+        # ------------------------------------------------------
+
+        self.declare_parameter('audit_only', True)
+
+        self.declare_parameter(
+            'braking_decel',
+            0.64
+        )
+
+        self.declare_parameter(
+            'delta_t',
+            0.023
+        )
+
+        self.declare_parameter(
+            'd_margin',
+            0.0
+        )
+
+        self.declare_parameter(
+            'd_hard',
+            0.31
+        )
+
+        self.declare_parameter(
+            'normal_speed',
+            0.22
+        )
+
+        self.declare_parameter(
+            'slow_speed',
+            0.08
+        )
+
+        self.declare_parameter(
+            'state_timeout',
+            0.25
+        )
+
+        self.declare_parameter(
+            'scan_timeout',
+            0.50
+        )
+
+        self.declare_parameter(
+            'watchdog_rate',
+            20.0
+        )
+
+        # Robot / LiDAR geometry in base_footprint
+        self.declare_parameter(
+            'lidar_x',
+            -0.032
+        )
+
+        self.declare_parameter(
+            'front_x',
+            0.22
+        )
+
+        self.declare_parameter(
+            'half_width',
+            0.18
+        )
+
+        self.audit_only = bool(
+            self.get_parameter(
+                'audit_only'
+            ).value
+        )
+
+        self.b = float(
+            self.get_parameter(
+                'braking_decel'
+            ).value
+        )
+
+        self.delta_t = float(
+            self.get_parameter(
+                'delta_t'
+            ).value
+        )
+
+        self.d_margin = float(
+            self.get_parameter(
+                'd_margin'
+            ).value
+        )
+
+        self.d_hard = float(
+            self.get_parameter(
+                'd_hard'
+            ).value
+        )
+
+        self.normal_speed = float(
+            self.get_parameter(
+                'normal_speed'
+            ).value
+        )
+
+        self.slow_speed = float(
+            self.get_parameter(
+                'slow_speed'
+            ).value
+        )
+
+        self.state_timeout = float(
+            self.get_parameter(
+                'state_timeout'
+            ).value
+        )
+
+        self.scan_timeout = float(
+            self.get_parameter(
+                'scan_timeout'
+            ).value
+        )
+
+        watchdog_rate = float(
+            self.get_parameter(
+                'watchdog_rate'
+            ).value
+        )
+
+        self.lidar_x = float(
+            self.get_parameter(
+                'lidar_x'
+            ).value
+        )
+
+        self.front_x = float(
+            self.get_parameter(
+                'front_x'
+            ).value
+        )
+
+        self.half_width = float(
+            self.get_parameter(
+                'half_width'
+            ).value
+        )
+
+        if self.b <= 0.0:
+            raise ValueError(
+                'braking_decel must be > 0'
+            )
+
+        # ------------------------------------------------------
+        # QoS
+        # ------------------------------------------------------
+
+        command_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+        )
+
+        diagnostic_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+
+        # ------------------------------------------------------
+        # Subscribers
+        # ------------------------------------------------------
+
+        self.create_subscription(
+            UInt8,
+            '/action_requested',
+            self.action_callback,
+            command_qos,
+        )
+
+        self.create_subscription(
+            RobotState,
+            '/robot_state',
+            self.state_callback,
+            10,
+        )
+
+        # Raw local scan:
+        # independent from network-degraded perception.
+        self.create_subscription(
+            LaserScan,
+            '/scan',
+            self.scan_callback,
+            qos_profile_sensor_data,
+        )
+
+        # ------------------------------------------------------
+        # Publishers
+        # ------------------------------------------------------
+
+        self.action_cmd_pub = self.create_publisher(
+            UInt8,
+            '/action_cmd',
+            command_qos,
+        )
+
+        self.executed_pub = self.create_publisher(
+            UInt8,
+            '/action_executed',
+            diagnostic_qos,
+        )
+
+        self.override_pub = self.create_publisher(
+            Bool,
+            '/safety_override',
+            diagnostic_qos,
+        )
+
+        self.would_override_pub = self.create_publisher(
+            Bool,
+            '/safety_would_override',
+            diagnostic_qos,
+        )
+
+        self.reason_pub = self.create_publisher(
+            String,
+            '/safety_reason',
+            diagnostic_qos,
+        )
+
+        self.effective_age_pub = self.create_publisher(
+            Float32,
+            '/safety_effective_age',
+            diagnostic_qos,
+        )
+
+        self.age_crit_pub = self.create_publisher(
+            Float32,
+            '/safety_age_crit',
+            diagnostic_qos,
+        )
+
+        self.guard_distance_pub = self.create_publisher(
+            Float32,
+            '/safety_guard_distance',
+            diagnostic_qos,
+        )
+
+        self.guard_margin_pub = self.create_publisher(
+            Float32,
+            '/safety_guard_margin',
+            diagnostic_qos,
+        )
+
+        self.forward_clearance_pub = self.create_publisher(
+            Float32,
+            '/safety_forward_clearance',
+            diagnostic_qos,
+        )
+
+        self.min_range_pub = self.create_publisher(
+            Float32,
+            '/safety_min_range',
+            diagnostic_qos,
+        )
+
+        # Atomic diagnostic snapshot:
+        # all values originate from ONE safety evaluation.
+        self.snapshot_pub = self.create_publisher(
+            String,
+            '/safety_snapshot',
+            diagnostic_qos,
+        )
+
+        # ------------------------------------------------------
+        # Runtime state
+        # ------------------------------------------------------
+
+        self.latest_state = None
+
+        self.raw_scan_rx_ns = None
+        self.min_range = None
+        self.forward_clearance = None
+
+        self.last_requested = None
+        self.last_executed = None
+        self.last_diag_signature = None
+
+        period = (
+            1.0 /
+            max(1.0, watchdog_rate)
+        )
+
+        self.create_timer(
+            period,
+            self.watchdog_callback,
+        )
+
+        mode = (
+            'AUDIT ONLY'
+            if self.audit_only
+            else 'ENFORCEMENT'
+        )
+
+        self.get_logger().warning(
+            f'A3k geometry-aware supervisor: {mode}; '
+            f'b={self.b:.3f}, '
+            f'dt={self.delta_t:.3f}, '
+            f'd_hard={self.d_hard:.3f}'
+        )
+
+    # ----------------------------------------------------------
+    # Time helpers
+    # ----------------------------------------------------------
+
+    def now_ns(self):
+        return (
+            self.get_clock()
+            .now()
+            .nanoseconds
+        )
+
+    @staticmethod
+    def stamp_ns(stamp):
+        return (
+            int(stamp.sec) * 1_000_000_000
+            + int(stamp.nanosec)
+        )
+
+    def state_age(self):
+        if self.latest_state is None:
+            return float('inf')
+
+        t = self.stamp_ns(
+            self.latest_state.header.stamp
+        )
+
+        if t <= 0:
+            return float('inf')
+
+        return max(
+            0.0,
+            (self.now_ns() - t) / 1e9
+        )
+
+    def raw_scan_age(self):
+        if self.raw_scan_rx_ns is None:
+            return float('inf')
+
+        return max(
+            0.0,
+            (
+                self.now_ns()
+                - self.raw_scan_rx_ns
+            ) / 1e9
+        )
+
+    # ----------------------------------------------------------
+    # Geometry
+    # ----------------------------------------------------------
+
+    def scan_callback(self, msg: LaserScan):
+
+        global_min = float('inf')
+        forward_gap = float('inf')
+
+        for i, value in enumerate(
+            msg.ranges
+        ):
+            r = float(value)
+
+            if not math.isfinite(r):
+                continue
+
+            if (
+                r < msg.range_min
+                or r > msg.range_max
+            ):
+                continue
+
+            if r < global_min:
+                global_min = r
+
+            angle = (
+                float(msg.angle_min)
+                + i
+                * float(msg.angle_increment)
+            )
+
+            # Laser point transformed into base_footprint.
+            x = (
+                self.lidar_x
+                + r * math.cos(angle)
+            )
+
+            y = (
+                r * math.sin(angle)
+            )
+
+            # Longitudinal clearance measured from the
+            # robot's front boundary.
+            if (
+                x > self.front_x
+                and abs(y) <= self.half_width
+            ):
+                gap = (
+                    x
+                    - self.front_x
+                )
+
+                if gap < forward_gap:
+                    forward_gap = gap
+
+        if math.isfinite(global_min):
+            self.min_range = global_min
+        else:
+            self.min_range = None
+
+        self.forward_clearance = (
+            forward_gap
+        )
+
+        self.raw_scan_rx_ns = (
+            self.now_ns()
+        )
+
+    # ----------------------------------------------------------
+    # State / actions
+    # ----------------------------------------------------------
+
+    def state_callback(
+        self,
+        msg: RobotState
+    ):
+        self.latest_state = msg
+
+        if self.last_requested is not None:
+            self.evaluate_and_publish(
+                force_command=False
+            )
+
+    def action_callback(
+        self,
+        msg: UInt8
+    ):
+        requested = int(msg.data)
+
+        if (
+            requested < 0
+            or requested >= self.NUM_ACTIONS
+        ):
+            self.get_logger().error(
+                f'Invalid requested action '
+                f'{requested}'
+            )
+            return
+
+        self.last_requested = requested
+
+        self.evaluate_and_publish(
+            force_command=True
+        )
+
+    def watchdog_callback(self):
+        if self.last_requested is None:
+            return
+
+        self.evaluate_and_publish(
+            force_command=False
+        )
+
+    def stop_action(
+        self,
+        requested
+    ):
+        qos = (
+            requested
+            % self.NUM_QOS
+        )
+
+        return (
+            self.STOP_MODE
+            * self.NUM_QOS
+            + qos
+        )
+
+    def requested_nominal_speed(
+        self,
+        requested
+    ):
+        nav_mode = (
+            requested
+            // self.NUM_QOS
+        )
+
+        if nav_mode == self.NORMAL_MODE:
+            return self.normal_speed
+
+        if nav_mode == self.SLOW_MODE:
+            return self.slow_speed
+
+        return 0.0
+
+    # ----------------------------------------------------------
+    # Safety evaluation
+    # ----------------------------------------------------------
+
+    def fail_result(
+        self,
+        requested,
+        reason
+    ):
+        return {
+            'safe_action':
+                self.stop_action(requested),
+            'would_override': True,
+            'reason': reason,
+            'effective_age':
+                float('nan'),
+            'age_crit':
+                float('nan'),
+            'guard_distance':
+                float('nan'),
+            'guard_margin':
+                float('nan'),
+            'forward_clearance':
+                float('nan'),
+            'min_range':
+                float('nan'),
+        }
+
+    def evaluate(self):
+
+        requested = (
+            self.last_requested
+        )
+
+        if requested is None:
+            return None
+
+        nav_mode = (
+            requested
+            // self.NUM_QOS
+        )
+
+        if nav_mode == self.STOP_MODE:
+            return {
+                'safe_action': requested,
+                'would_override': False,
+                'reason':
+                    'requested_safe_stop',
+                'effective_age':
+                    float('nan'),
+                'age_crit':
+                    float('nan'),
+                'guard_distance':
+                    0.0,
+                'guard_margin':
+                    float('nan'),
+                'forward_clearance':
+                    float('nan'),
+                'min_range':
+                    self.min_range
+                    if self.min_range is not None
+                    else float('nan'),
+            }
+
+        if self.latest_state is None:
+            return self.fail_result(
+                requested,
+                'no_robot_state'
+            )
+
+        state_age = self.state_age()
+
+        if (
+            not math.isfinite(state_age)
+            or state_age
+            > self.state_timeout
+        ):
+            return self.fail_result(
+                requested,
+                'robot_state_stale'
+            )
+
+        scan_rx_age = (
+            self.raw_scan_age()
+        )
+
+        if (
+            not math.isfinite(scan_rx_age)
+            or scan_rx_age
+            > self.scan_timeout
+        ):
+            return self.fail_result(
+                requested,
+                'raw_scan_stale'
+            )
+
+        if self.min_range is None:
+            return self.fail_result(
+                requested,
+                'no_valid_raw_scan'
+            )
+
+        scan_age = float(
+            self.latest_state.scan_age
+        )
+
+        measured_speed = abs(
+            float(
+                self.latest_state.speed
+            )
+        )
+
+        if not all(
+            math.isfinite(x)
+            for x in [
+                scan_age,
+                measured_speed,
+                self.min_range,
+            ]
+        ):
+            return self.fail_result(
+                requested,
+                'invalid_safety_state'
+            )
+
+        # Effective degraded-perception AoI.
+        effective_age = max(
+            0.0,
+            scan_age + state_age
+        )
+
+        nominal_speed = (
+            self.requested_nominal_speed(
+                requested
+            )
+        )
+
+        v = max(
+            measured_speed,
+            nominal_speed
+        )
+
+        # ------------------------------------------------------
+        # Guard 1:
+        # 360-degree hard geometric envelope.
+        # ------------------------------------------------------
+
+        if (
+            self.min_range
+            <= self.d_hard
+        ):
+            return {
+                'safe_action':
+                    self.stop_action(
+                        requested
+                    ),
+                'would_override': True,
+                'reason':
+                    'hard_distance_guard',
+                'effective_age':
+                    effective_age,
+                'age_crit':
+                    float('nan'),
+                'guard_distance':
+                    0.0,
+                'guard_margin':
+                    (
+                        self.min_range
+                        - self.d_hard
+                    ),
+                'forward_clearance':
+                    self.forward_clearance,
+                'min_range':
+                    self.min_range,
+            }
+
+        # ------------------------------------------------------
+        # Guard 2:
+        # Forward longitudinal braking clearance.
+        # ------------------------------------------------------
+
+        braking_term = (
+            v * v
+            / (2.0 * self.b)
+        )
+
+        required_distance = (
+            v
+            * (
+                effective_age
+                + self.delta_t
+            )
+            + braking_term
+            + self.d_margin
+        )
+
+        forward = (
+            self.forward_clearance
+        )
+
+        # No obstacle in forward corridor means effectively
+        # unbounded local forward clearance.
+        if not math.isfinite(forward):
+            guard_margin = float('inf')
+            age_crit = float('inf')
+
+        else:
+            guard_margin = (
+                forward
+                - required_distance
+            )
+
+            if v > 1e-6:
+                age_crit = (
+                    (
+                        forward
+                        - self.d_margin
+                        - braking_term
+                    ) / v
+                    - self.delta_t
+                )
+            else:
+                age_crit = (
+                    float('inf')
+                )
+
+        if (
+            math.isfinite(forward)
+            and guard_margin <= 0.0
+        ):
+            safe_action = (
+                self.stop_action(
+                    requested
+                )
+            )
+
+            would_override = True
+            reason = (
+                'dynamic_stopping_guard'
+            )
+
+        else:
+            safe_action = requested
+            would_override = False
+            reason = 'safe_pass'
+
+        return {
+            'safe_action':
+                safe_action,
+            'would_override':
+                would_override,
+            'reason':
+                reason,
+            'effective_age':
+                effective_age,
+            'age_crit':
+                age_crit,
+            'guard_distance':
+                required_distance,
+            'guard_margin':
+                guard_margin,
+            'forward_clearance':
+                forward,
+            'min_range':
+                self.min_range,
+        }
+
+    # ----------------------------------------------------------
+    # Publishing
+    # ----------------------------------------------------------
+
+    @staticmethod
+    def publish_float(
+        pub,
+        value
+    ):
+        msg = Float32()
+        msg.data = float(value)
+        pub.publish(msg)
+
+    def evaluate_and_publish(
+        self,
+        force_command=False
+    ):
+        result = self.evaluate()
+
+        if result is None:
+            return
+
+        requested = (
+            self.last_requested
+        )
+
+        safe_action = int(
+            result['safe_action']
+        )
+
+        would_override = bool(
+            result['would_override']
+        )
+
+        if self.audit_only:
+            executed = requested
+            actual_override = False
+
+            if would_override:
+                reason = (
+                    'audit_would_override:'
+                    + result['reason']
+                )
+            else:
+                reason = (
+                    'audit_pass:'
+                    + result['reason']
+                )
+        else:
+            executed = safe_action
+
+            actual_override = (
+                executed != requested
+            )
+
+            reason = (
+                result['reason']
+            )
+
+        self.publish_float(
+            self.effective_age_pub,
+            result['effective_age']
+        )
+
+        self.publish_float(
+            self.age_crit_pub,
+            result['age_crit']
+        )
+
+        self.publish_float(
+            self.guard_distance_pub,
+            result['guard_distance']
+        )
+
+        self.publish_float(
+            self.guard_margin_pub,
+            result['guard_margin']
+        )
+
+        self.publish_float(
+            self.forward_clearance_pub,
+            result['forward_clearance']
+        )
+
+        self.publish_float(
+            self.min_range_pub,
+            result['min_range']
+        )
+
+        # Publish one atomic textual record so that validation
+        # never mixes diagnostics from different evaluations.
+        snapshot = String()
+
+        snapshot.data = (
+            f'requested={requested}|'
+            f'safe_action={safe_action}|'
+            f'executed={executed}|'
+            f'would={int(would_override)}|'
+            f'override={int(actual_override)}|'
+            f'reason={reason}|'
+            f'a_eff={result["effective_age"]:.9f}|'
+            f'a_crit={result["age_crit"]:.9f}|'
+            f'd_min={result["min_range"]:.9f}|'
+            f'd_fwd={result["forward_clearance"]:.9f}|'
+            f'd_req={result["guard_distance"]:.9f}|'
+            f'margin={result["guard_margin"]:.9f}'
+        )
+
+        self.snapshot_pub.publish(snapshot)
+
+        if (
+            force_command
+            or self.last_executed
+            != executed
+        ):
+            cmd = UInt8()
+            cmd.data = int(executed)
+
+            self.action_cmd_pub.publish(
+                cmd
+            )
+
+            msg_exec = UInt8()
+            msg_exec.data = int(executed)
+
+            self.executed_pub.publish(
+                msg_exec
+            )
+
+            self.last_executed = executed
+
+        signature = (
+            requested,
+            executed,
+            would_override,
+            actual_override,
+            reason,
+        )
+
+        if (
+            force_command
+            or signature
+            != self.last_diag_signature
+        ):
+            msg = Bool()
+            msg.data = actual_override
+            self.override_pub.publish(msg)
+
+            msg = Bool()
+            msg.data = would_override
+            self.would_override_pub.publish(
+                msg
+            )
+
+            msg_reason = String()
+            msg_reason.data = reason
+            self.reason_pub.publish(
+                msg_reason
+            )
+
+            self.get_logger().info(
+                f'requested={requested} '
+                f'safe_action={safe_action} '
+                f'executed={executed} '
+                f'would_override='
+                f'{would_override} '
+                f'reason={reason} '
+                f'a_eff='
+                f'{result["effective_age"]:.3f}s '
+                f'a_crit='
+                f'{result["age_crit"]:.3f}s '
+                f'd_min='
+                f'{result["min_range"]:.3f}m '
+                f'd_fwd='
+                f'{result["forward_clearance"]:.3f}m '
+                f'd_req='
+                f'{result["guard_distance"]:.3f}m '
+                f'margin='
+                f'{result["guard_margin"]:.3f}m'
+            )
+
+            self.last_diag_signature = (
+                signature
+            )
+
+
+def main(args=None):
+
+    rclpy.init(args=args)
+
+    node = SafetySupervisor()
+
+    try:
+        rclpy.spin(node)
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        node.destroy_node()
+
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

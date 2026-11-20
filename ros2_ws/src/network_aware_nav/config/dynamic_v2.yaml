@@ -1,0 +1,14 @@
+dynamic_obstacle:
+  cross_x: 0.45
+  start_y: -0.24
+  end_y: 0.24
+  speed: 0.08
+  hold_time: 1.0
+
+geometry:
+  robot_radius: 0.10
+  pedestrian_radius: 0.09
+
+experiment:
+  description: "P2-triggered dynamic crossing scenario V2"
+  primary_metric: "dynamic_clearance"

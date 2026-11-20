@@ -1,0 +1,125 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="train_14">
+    <include><uri>model://sun</uri></include>
+    <include><uri>model://ground_plane</uri></include>
+    <scene>
+      <ambient>0.5 0.5 0.5 1</ambient>
+      <shadows>false</shadows>
+    </scene>
+    <physics type="ode">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>0</real_time_update_rate>
+    </physics>
+    <gui>
+      <camera name="user_camera">
+        <pose>0 0 11.269432375820548 0 1.5707 1.5707</pose>
+      </camera>
+    </gui>
+    <model name="walls">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 4.5522 0.4000 0 0 0</pose>
+          <geometry><box><size>9.5912 0.1000 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 4.5522 0.4000 0 0 0</pose>
+          <geometry><box><size>9.5912 0.1000 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+        <collision name="collision_1">
+          <pose>0.0000 -4.5522 0.4000 0 0 0</pose>
+          <geometry><box><size>9.5912 0.1000 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_1">
+          <pose>0.0000 -4.5522 0.4000 0 0 0</pose>
+          <geometry><box><size>9.5912 0.1000 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+        <collision name="collision_2">
+          <pose>-4.7456 0.0000 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 9.2043 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_2">
+          <pose>-4.7456 0.0000 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 9.2043 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+        <collision name="collision_3">
+          <pose>4.7456 0.0000 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 9.2043 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_3">
+          <pose>4.7456 0.0000 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 9.2043 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+        <collision name="collision_4">
+          <pose>0.0000 -1.8816 0.4000 0 0 0</pose>
+          <geometry><box><size>6.4357 2.2856 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_4">
+          <pose>0.0000 -1.8816 0.4000 0 0 0</pose>
+          <geometry><box><size>6.4357 2.2856 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+        <collision name="collision_5">
+          <pose>0.1009 -3.3015 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 0.5542 0.8000</size></box></geometry>
+        </collision>
+        <visual name="visual_5">
+          <pose>0.1009 -3.3015 0.4000 0 0 0</pose>
+          <geometry><box><size>0.1000 0.5542 0.8000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Grey</name></script></material>
+        </visual>
+      </link>
+    </model>
+    <model name="obstacle_0">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2346 0.2346 0.5000</size></box></geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2346 0.2346 0.5000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Orange</name></script></material>
+        </visual>
+      </link>
+      <pose>-3.0206 1.9728 0 0 0 0</pose>
+    </model>
+    <model name="obstacle_1">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2756 0.2756 0.5000</size></box></geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2756 0.2756 0.5000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Orange</name></script></material>
+        </visual>
+      </link>
+      <pose>0.9294 3.5228 0 0 0 0</pose>
+    </model>
+    <model name="obstacle_2">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2495 0.2495 0.5000</size></box></geometry>
+        </collision>
+        <visual name="visual_0">
+          <pose>0.0000 0.0000 0.2500 0 0 0</pose>
+          <geometry><box><size>0.2495 0.2495 0.5000</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Orange</name></script></material>
+        </visual>
+      </link>
+      <pose>-1.3206 1.5728 0 0 0 0</pose>
+    </model>
+  </world>
+</sdf>

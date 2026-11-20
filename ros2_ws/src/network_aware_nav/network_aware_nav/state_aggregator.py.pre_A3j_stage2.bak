@@ -1,0 +1,298 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (
+    QoSProfile,
+    ReliabilityPolicy,
+    DurabilityPolicy,
+)
+
+from std_msgs.msg import UInt8, Empty
+from naw_interfaces.msg import (
+    NetworkState,
+    RobotState,
+    StateVector,
+)
+
+
+class StateAggregator(Node):
+
+    def __init__(self):
+        super().__init__('state_aggregator')
+
+        # Decision/state loop
+        self.declare_parameter('publish_rate', 2.0)
+        self.declare_parameter('source_timeout', 2.0)
+
+        # Normalization parameters.
+        #
+        # These are calibration parameters, not hidden constants.
+        self.declare_parameter('latency_max', 0.70)
+        self.declare_parameter('bandwidth_max', 18.43712)
+        self.declare_parameter('age_max', 3.0)
+        self.declare_parameter('obstacle_max', 3.5)
+
+        self.publish_rate = float(
+            self.get_parameter('publish_rate').value
+        )
+
+        self.source_timeout = float(
+            self.get_parameter('source_timeout').value
+        )
+
+        self.latency_max = float(
+            self.get_parameter('latency_max').value
+        )
+
+        self.bandwidth_max = float(
+            self.get_parameter('bandwidth_max').value
+        )
+
+        self.age_max = float(
+            self.get_parameter('age_max').value
+        )
+
+        self.obstacle_max = float(
+            self.get_parameter('obstacle_max').value
+        )
+
+        self.network = None
+        self.robot = None
+        self.qos_profile = None
+
+        self.network_rx_ns = None
+        self.robot_rx_ns = None
+        self.qos_rx_ns = None
+
+        # dg0 = initial goal distance of current episode.
+        self.initial_goal_distance = None
+        self.capture_initial_goal = True
+
+        self.network_sub = self.create_subscription(
+            NetworkState,
+            '/network_state',
+            self.network_callback,
+            10
+        )
+
+        self.robot_sub = self.create_subscription(
+            RobotState,
+            '/robot_state',
+            self.robot_callback,
+            10
+        )
+
+        qos = QoSProfile(depth=1)
+        qos.reliability = ReliabilityPolicy.RELIABLE
+        qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+
+        self.qos_sub = self.create_subscription(
+            UInt8,
+            '/qos_profile',
+            self.qos_callback,
+            qos
+        )
+
+        # Episode runner will publish this before each new goal.
+        self.reset_sub = self.create_subscription(
+            Empty,
+            '/episode_reset',
+            self.reset_callback,
+            10
+        )
+
+        self.pub = self.create_publisher(
+            StateVector,
+            '/state_vector',
+            10
+        )
+
+        self.create_timer(
+            1.0 / max(self.publish_rate, 0.1),
+            self.publish_state
+        )
+
+        self.get_logger().info(
+            'StateAggregator started: '
+            'normalized 9-D state @ '
+            f'{self.publish_rate:.1f} Hz'
+        )
+
+        self.get_logger().info(
+            'Normalizers: '
+            f'latency_max={self.latency_max:.3f}s, '
+            f'bandwidth_max={self.bandwidth_max:.3f}Mbps, '
+            f'age_max={self.age_max:.3f}s, '
+            f'obstacle_max={self.obstacle_max:.3f}m'
+        )
+
+    @staticmethod
+    def clip01(x):
+        return max(0.0, min(float(x), 1.0))
+
+    def now_ns(self):
+        return self.get_clock().now().nanoseconds
+
+    def network_callback(self, msg):
+        self.network = msg
+        self.network_rx_ns = self.now_ns()
+
+    def robot_callback(self, msg):
+        self.robot = msg
+        self.robot_rx_ns = self.now_ns()
+
+        if self.capture_initial_goal:
+            dg = float(msg.dist_goal)
+
+            if dg > 1e-3:
+                self.initial_goal_distance = dg
+                self.capture_initial_goal = False
+
+                self.get_logger().info(
+                    'Captured episode initial goal distance: '
+                    f'{dg:.3f} m'
+                )
+
+    def qos_callback(self, msg):
+        self.qos_profile = int(msg.data)
+        self.qos_rx_ns = self.now_ns()
+
+    def reset_callback(self, _msg):
+        self.initial_goal_distance = None
+        self.capture_initial_goal = True
+
+        self.get_logger().info(
+            'Episode reset received; waiting for '
+            'first fresh goal-distance sample.'
+        )
+
+    def fresh(self, rx_ns):
+        if rx_ns is None:
+            return False
+
+        age = (self.now_ns() - rx_ns) * 1e-9
+        return 0.0 <= age <= self.source_timeout
+
+    def publish_state(self):
+        if self.network is None:
+            return
+
+        if self.robot is None:
+            return
+
+        if self.qos_profile is None:
+            return
+
+        if self.initial_goal_distance is None:
+            return
+
+        if not self.fresh(self.network_rx_ns):
+            return
+
+        if not self.fresh(self.robot_rx_ns):
+            return
+
+        if not self.fresh(self.qos_rx_ns):
+            # qos_profile manager republishes periodically.
+            return
+
+        n = self.network
+        r = self.robot
+        q = int(self.qos_profile)
+
+        nav_mode = int(r.nav_status)
+
+        raw = [
+            float(n.latency),
+            float(n.packet_loss),
+            float(n.bandwidth),
+            float(r.scan_age),
+            float(r.camera_age),
+            float(r.dist_obstacle),
+            float(r.dist_goal),
+            float(nav_mode),
+            float(q),
+        ]
+
+        state = [
+            self.clip01(
+                n.latency / max(self.latency_max, 1e-6)
+            ),
+
+            self.clip01(
+                n.packet_loss
+            ),
+
+            self.clip01(
+                n.bandwidth / max(self.bandwidth_max, 1e-6)
+            ),
+
+            self.clip01(
+                r.scan_age / max(self.age_max, 1e-6)
+            ),
+
+            self.clip01(
+                r.camera_age / max(self.age_max, 1e-6)
+            ),
+
+            self.clip01(
+                r.dist_obstacle /
+                max(self.obstacle_max, 1e-6)
+            ),
+
+            self.clip01(
+                r.dist_goal /
+                max(self.initial_goal_distance, 1e-6)
+            ),
+
+            self.clip01(
+                nav_mode / 2.0
+            ),
+
+            self.clip01(
+                q / 2.0
+            ),
+        ]
+
+        msg = StateVector()
+
+        msg.header.stamp = (
+            self.get_clock().now().to_msg()
+        )
+
+        msg.header.frame_id = 'state_aggregator'
+
+        msg.state = [
+            float(x) for x in state
+        ]
+
+        msg.raw_state = [
+            float(x) for x in raw
+        ]
+
+        msg.initial_goal_distance = float(
+            self.initial_goal_distance
+        )
+
+        self.pub.publish(msg)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = StateAggregator()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

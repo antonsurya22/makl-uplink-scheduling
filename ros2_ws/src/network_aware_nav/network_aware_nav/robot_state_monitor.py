@@ -1,0 +1,452 @@
+#!/usr/bin/env python3
+
+import math
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (
+    qos_profile_sensor_data,
+    QoSProfile,
+    ReliabilityPolicy,
+    DurabilityPolicy,
+)
+
+from std_msgs.msg import Float32, Float32MultiArray, UInt8
+from unique_identifier_msgs.msg import UUID
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+
+from nav2_msgs.action._navigate_to_pose import (
+    NavigateToPose_FeedbackMessage,
+)
+
+from naw_interfaces.msg import RobotState
+
+
+class RobotStateMonitor(Node):
+
+    def __init__(self):
+        super().__init__('robot_state_monitor')
+
+        self.declare_parameter('publish_rate', 20.0)
+        self.declare_parameter('source_timeout', 2.0)
+        self.declare_parameter('goal_feedback_timeout', 2.0)
+
+        publish_rate = float(
+            self.get_parameter('publish_rate').value
+        )
+
+        self.source_timeout = float(
+            self.get_parameter('source_timeout').value
+        )
+
+        self.goal_feedback_timeout = float(
+            self.get_parameter('goal_feedback_timeout').value
+        )
+
+        # Latest values
+        self.scan_age = None
+        self.camera_age = None
+        self.dist_obstacle = None
+
+        # A3j:
+        # Authoritative sensor AoI is derived directly from the
+        # original acquisition timestamp preserved in
+        # /scan_degraded.header.stamp.
+        self.degraded_scan_stamp_ns = None
+        self.degraded_scan_rx = None
+
+        # /topic_age.data[2] remains diagnostic only.
+        self.topic_age_scan_age_diag = None
+        self.dist_goal = None
+        self.speed = None
+        self.nav_status = None
+
+        # Receipt timestamps
+        self.scan_age_rx = None
+        self.camera_age_rx = None
+        self.scan_rx = None
+        self.odom_rx = None
+        self.nav_mode_rx = None
+        self.goal_feedback_rx = None
+        self.active_goal_id = None
+
+        # /topic_age:
+        # [0] latency
+        # [1] loss
+        # [2] degraded scan age
+        # [3] command age
+        self.create_subscription(
+            Float32MultiArray,
+            '/topic_age',
+            self.topic_age_callback,
+            10,
+        )
+
+        self.create_subscription(
+            Float32,
+            '/camera_age',
+            self.camera_age_callback,
+            10,
+        )
+
+        # A3j:
+        # Network-degraded scan is used ONLY for sensor AoI.
+        # The emulator preserves the ORIGINAL acquisition
+        # timestamp in msg.header.stamp.
+        self.create_subscription(
+            LaserScan,
+            '/scan_degraded',
+            self.degraded_scan_callback,
+            qos_profile_sensor_data,
+        )
+
+        # IMPORTANT:
+        # raw scan is used for physical/local obstacle distance.
+        self.create_subscription(
+            LaserScan,
+            '/scan',
+            self.scan_callback,
+            qos_profile_sensor_data,
+        )
+
+        self.create_subscription(
+            Odometry,
+            '/odom',
+            self.odom_callback,
+            10,
+        )
+
+        # /nav_mode is transient-local.
+        mode_qos = QoSProfile(depth=1)
+        mode_qos.reliability = ReliabilityPolicy.RELIABLE
+        mode_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+
+        self.create_subscription(
+            UInt8,
+            '/nav_mode',
+            self.nav_mode_callback,
+            mode_qos,
+        )
+
+        # Latched scope from NetworkAwareEnv; zero UUID invalidates
+        # distance feedback during goal transitions / reset.
+        goal_scope_qos = QoSProfile(depth=1)
+        goal_scope_qos.reliability = ReliabilityPolicy.RELIABLE
+        goal_scope_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.create_subscription(
+            UUID, '/active_nav_goal_id',
+            self.active_goal_callback, goal_scope_qos,
+        )
+
+        self.create_subscription(
+            NavigateToPose_FeedbackMessage,
+            '/navigate_to_pose/_action/feedback',
+            self.goal_feedback_callback,
+            10,
+        )
+
+        self.publisher = self.create_publisher(
+            RobotState,
+            '/robot_state',
+            10,
+        )
+
+        period = 1.0 / max(0.1, publish_rate)
+
+        self.create_timer(
+            period,
+            self.publish_state,
+        )
+
+        self.last_not_ready_log = None
+
+        self.get_logger().info(
+            f'RobotStateMonitor started at {publish_rate:.2f} Hz'
+        )
+
+    def now(self):
+        return self.get_clock().now()
+
+    def topic_age_callback(self, msg):
+        if len(msg.data) < 3:
+            self.get_logger().warning(
+                '/topic_age contains fewer than 3 elements'
+            )
+            return
+
+        # Diagnostic cross-check only.
+        # Do NOT use this snapshot as the runtime safety AoI.
+        self.topic_age_scan_age_diag = max(
+            0.0,
+            float(msg.data[2])
+        )
+
+        self.scan_age_rx = self.now()
+
+    def degraded_scan_callback(self, msg):
+        stamp_ns = (
+            int(msg.header.stamp.sec) * 1_000_000_000
+            + int(msg.header.stamp.nanosec)
+        )
+
+        if stamp_ns <= 0:
+            self.get_logger().warning(
+                '/scan_degraded has invalid zero timestamp'
+            )
+            return
+
+        self.degraded_scan_stamp_ns = stamp_ns
+        self.degraded_scan_rx = self.now()
+
+        # Initialize immediately. It will be recomputed from the
+        # stored acquisition timestamp every publish cycle.
+        self.scan_age = max(
+            0.0,
+            (
+                self.degraded_scan_rx.nanoseconds
+                - self.degraded_scan_stamp_ns
+            ) / 1e9
+        )
+
+    def camera_age_callback(self, msg):
+        self.camera_age = max(
+            0.0,
+            float(msg.data)
+        )
+
+        self.camera_age_rx = self.now()
+
+    def scan_callback(self, msg):
+        valid = []
+
+        for r in msg.ranges:
+            if not math.isfinite(r):
+                continue
+
+            if r < msg.range_min:
+                continue
+
+            if r > msg.range_max:
+                continue
+
+            valid.append(float(r))
+
+        if valid:
+            self.dist_obstacle = min(valid)
+        else:
+            # No obstacle detected within valid sensor range.
+            # Use sensor maximum range rather than a fake zero.
+            self.dist_obstacle = float(msg.range_max)
+
+        self.scan_rx = self.now()
+
+    def odom_callback(self, msg):
+        vx = float(msg.twist.twist.linear.x)
+        vy = float(msg.twist.twist.linear.y)
+
+        self.speed = math.sqrt(
+            vx * vx + vy * vy
+        )
+
+        self.odom_rx = self.now()
+
+    def nav_mode_callback(self, msg):
+        mode = int(msg.data)
+
+        if mode not in (0, 1, 2):
+            self.get_logger().warning(
+                f'Invalid /nav_mode value: {mode}'
+            )
+            return
+
+        self.nav_status = mode
+        self.nav_mode_rx = self.now()
+
+    def active_goal_callback(self, msg):
+        new_id = bytes(msg.uuid)
+        if len(new_id) != 16:
+            return
+        if not any(new_id):
+            new_id = None
+        if new_id != self.active_goal_id:
+            self.active_goal_id = new_id
+            self.dist_goal = None
+            self.goal_feedback_rx = None
+
+    def goal_feedback_callback(self, msg):
+        if (self.active_goal_id is None
+                or bytes(msg.goal_id.uuid) != self.active_goal_id):
+            return
+        distance = float(
+            msg.feedback.distance_remaining
+        )
+
+        if not math.isfinite(distance):
+            return
+
+        self.dist_goal = max(
+            0.0,
+            distance
+        )
+
+        self.goal_feedback_rx = self.now()
+
+    def age_of(self, timestamp):
+        if timestamp is None:
+            return float('inf')
+
+        return (
+            self.now().nanoseconds -
+            timestamp.nanoseconds
+        ) / 1e9
+
+    def sources_ready(self):
+        """
+        A3j safety-core readiness.
+
+        RobotState publication MUST NOT depend on optional
+        camera/task features. The safety supervisor requires
+        continuous access to:
+
+          - true degraded-scan AoI
+          - local raw-LiDAR obstacle distance
+          - odometry/speed
+          - navigation mode
+
+        camera_age and dist_goal are optional here. If they are
+        unavailable/stale they are published as NaN and the
+        StateAggregator will reject the incomplete RL observation.
+        """
+
+        required_values = [
+            self.scan_age,
+            self.dist_obstacle,
+            self.speed,
+            self.nav_status,
+        ]
+
+        if any(v is None for v in required_values):
+            return False
+
+        if self.degraded_scan_stamp_ns is None:
+            return False
+
+        # Local safety-critical sources must remain alive.
+        timestamps = [
+            self.scan_rx,
+            self.odom_rx,
+            self.nav_mode_rx,
+        ]
+
+        for timestamp in timestamps:
+            if timestamp is None:
+                return False
+
+            if self.age_of(timestamp) > self.source_timeout:
+                return False
+
+        # IMPORTANT:
+        # Do not reject RobotState because /scan_degraded has
+        # stopped arriving. Its acquisition timestamp is retained
+        # so scan_age can continue increasing during packet-loss
+        # gaps.
+
+        return True
+
+    def publish_state(self):
+        if not self.sources_ready():
+            # Throttled informational warning, approximately every 5 s.
+            now = self.now()
+
+            if (
+                self.last_not_ready_log is None
+                or (
+                    now.nanoseconds -
+                    self.last_not_ready_log.nanoseconds
+                ) / 1e9 > 5.0
+            ):
+                self.get_logger().info(
+                    'RobotState waiting for fresh sensor/mode/'
+                    'NavigateToPose feedback'
+                )
+
+                self.last_not_ready_log = now
+
+            return
+
+        # A3j:
+        # Recompute effective sensor AoI at publication time:
+        #
+        #   a(t) = now - acquisition_stamp(last degraded scan)
+        #
+        # This means scan_age continues to increase between
+        # packet arrivals and during packet-loss gaps.
+        if self.degraded_scan_stamp_ns is None:
+            return
+
+        publish_now = self.now()
+
+        self.scan_age = max(
+            0.0,
+            (
+                publish_now.nanoseconds
+                - self.degraded_scan_stamp_ns
+            ) / 1e9
+        )
+
+        msg = RobotState()
+
+        msg.header.stamp = publish_now.to_msg()
+        msg.header.frame_id = 'robot_state_monitor'
+
+        msg.scan_age = float(self.scan_age)
+
+        # Optional task/perception features.
+        # NaN explicitly means unavailable or stale; do not
+        # fabricate a valid-looking zero.
+        if (
+            self.camera_age is not None
+            and self.camera_age_rx is not None
+            and self.age_of(self.camera_age_rx) <= self.source_timeout
+        ):
+            msg.camera_age = float(self.camera_age)
+        else:
+            msg.camera_age = float('nan')
+
+        msg.dist_obstacle = float(self.dist_obstacle)
+
+        if (
+            self.dist_goal is not None
+            and self.goal_feedback_rx is not None
+            and self.age_of(self.goal_feedback_rx)
+                <= self.goal_feedback_timeout
+        ):
+            msg.dist_goal = float(self.dist_goal)
+        else:
+            msg.dist_goal = float('nan')
+
+        msg.speed = float(self.speed)
+        msg.nav_status = int(self.nav_status)
+
+        self.publisher.publish(msg)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = RobotStateMonitor()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

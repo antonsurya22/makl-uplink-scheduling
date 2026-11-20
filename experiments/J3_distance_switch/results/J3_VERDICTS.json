@@ -1,0 +1,61 @@
+{
+ "H1_LC-Q1_MAKL_more_frames_than_B7_and_violation_not_clearly_larger": true,
+ "H2a_DSW0.8_violation_clearly_larger_than_MAKL_at_LC-Q1": true,
+ "H2b_MAKL_frames_clearly_larger_than_DSW1.2_in_a_Q1_cell": true,
+ "H2b_by_cell": {
+  "LB-Q1": false,
+  "LC-Q1": true
+ },
+ "H3_tuned_DSW1.0_not_clearly_better_than_MAKL_on_either_metric_all_cells": true,
+ "H3_by_cell": {
+  "LB-Q1": true,
+  "LC-Q1": true,
+  "LC-Q2": true
+ },
+ "H4_no_robot_moving_contact": true,
+ "robot_moving_contacts": 0,
+ "R_B7_MAKL_reproduce_J1": true,
+ "R_detail": {
+  "LB-Q1|B7": {
+   "viol_J3": 1.24,
+   "viol_J1": 1.3,
+   "tol_viol": 0.8,
+   "F_J3": 2.272,
+   "F_J1": 2.28,
+   "tol_F": 0.4,
+   "ok": true
+  },
+  "LB-Q1|MAKL": {
+   "viol_J3": 1.24,
+   "viol_J1": 1.42,
+   "tol_viol": 0.8,
+   "F_J3": 3.184,
+   "F_J1": 3.216,
+   "tol_F": 0.4,
+   "ok": true
+  },
+  "LC-Q2|B7": {
+   "viol_J3": 1.82,
+   "viol_J1": 1.62,
+   "tol_viol": 0.7,
+   "F_J3": 0.392,
+   "F_J1": 0.408,
+   "tol_F": 0.2,
+   "ok": true
+  },
+  "LC-Q2|MAKL": {
+   "viol_J3": 1.42,
+   "viol_J1": 1.96,
+   "tol_viol": 1.064,
+   "F_J3": 0.888,
+   "F_J1": 0.88,
+   "tol_F": 0.2,
+   "ok": true
+  }
+ },
+ "outcome": "SUPPORTED",
+ "n_runs": 75,
+ "status_counts": {
+  "SUCCEEDED": 75
+ }
+}

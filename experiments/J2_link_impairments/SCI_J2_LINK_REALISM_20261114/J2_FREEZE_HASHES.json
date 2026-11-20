@@ -1,0 +1,16 @@
+{
+ "frozen_utc": "2026-11-14T13:15:38.644451+00:00",
+ "sha256": {
+  "J2_PROTOCOL_FREEZE.md": "cceb760d48df55530d97fb8f9810c05f1c6c7dff3ba3f39695fde2f8b3d4e409",
+  "JALANKAN_J2.sh": "bbe5e04a02e84471889d88fb1a6ff8c7dee36d3ee71f25bcc8739763fa63151c",
+  "README.md": "6b784e53ccd9ca508a7c2aad3ce497893198e9d56f5cefe0f70fcfa87c6ad73b",
+  "j2_analysis.py": "392ace75acec497bf5e31c292ee5c693f5f65e1e02506f9641e25a5853c21729",
+  "j2_bridge.py": "cb0bba0aebe444d0473a7df1d88e6796a62e3ade38f6e577d2ee113a82118c7b",
+  "j2_impair.py": "e757a42bf82608b9b1d4a5cc81e9593d170cbfe14629e692f7773ccc8ed66d4b",
+  "j2_metrics.py": "0bf135d51b430b8fa8c74fb92b6f5dcea5036e0827e184aefb767ce8853afff1",
+  "j2_run_all.py": "5e265bf18a2ac3b318514e76360a5048ba697091b378a2ad795f67dc9753184a",
+  "j2_run_trial.py": "ff122c1a41271054978f33398436a925191c1a8b7d8d43b966d13b5d7a23b00c",
+  "tests/j2_run_trial_edits.py": "532fec6b9d0da8c925177c6cf1517c45c3bcef63a326d669036f974d2ba4fc96",
+  "tests/test_j2_offline.py": "63a0cc1ac9a034d88cf3c6014d9e0f5dca6fc6b1f54ada516d0a0920ff7a3653"
+ }
+}

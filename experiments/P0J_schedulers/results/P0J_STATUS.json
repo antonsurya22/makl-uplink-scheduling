@@ -1,0 +1,55 @@
+{
+ "utc": "20261112T121858Z",
+ "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+ "hashes": {
+  "package_changed": [],
+  "vendored_not_equal_original": [],
+  "equal_to_vm_copy": {
+   "frozen_deps/link_disciplines.py": true,
+   "frozen_deps/e4_harness.py": true,
+   "frozen_deps/frozen/shared_link.py": true,
+   "frozen_deps/e7_link.py": true,
+   "frozen_deps/e3b_policy_logic.py": true,
+   "frozen_deps/e5_metrics.py": true
+  },
+  "freeze_utc": "2026-11-11T12:37:44.566712+00:00"
+ },
+ "unit_tests": true,
+ "traces": {
+  "E3B": {
+   "runs": 72,
+   "from_folder": 72,
+   "from_zip": 0,
+   "missing": 0,
+   "missing_ids": [],
+   "zip_used": null
+  },
+  "E5": {
+   "runs": 180,
+   "from_folder": 180,
+   "from_zip": 0,
+   "missing": 0,
+   "missing_ids": [],
+   "zip_used": null
+  },
+  "E7": {
+   "runs": 48,
+   "from_folder": 48,
+   "from_zip": 0,
+   "missing": 0,
+   "missing_ids": [],
+   "zip_used": null
+  }
+ },
+ "all_tests_with_traces": false,
+ "j0_ran": true,
+ "j0_gate": {
+  "viol_MAKL": 1.767,
+  "viol_B3": 3.133,
+  "F_MAKL": 2.88,
+  "F_B7": 2.24,
+  "n_traces": 3,
+  "passed": true
+ },
+ "result": "DONE_BUT_T5_FAILED"
+}

@@ -1,0 +1,6 @@
+image: train_10.pgm
+resolution: 0.05
+origin: [-2.3391, -1.9407, 0.0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196

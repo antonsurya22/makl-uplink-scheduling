@@ -1,0 +1,11 @@
+{
+ "ow_p50_ms": 703.8739499999999,
+ "ow_p99_ms": 1699.9895827599985,
+ "nav_minus_link_p50_ms": 705.57825,
+ "nav_minus_link_p99_ms": 1701.6646299999984,
+ "pub_late_p99_ms": 9.204520000000002,
+ "eps_ce_p50_ms": 58.0,
+ "makl_decision_thread_p50_ms": 0.76188775,
+ "makl_decision_thread_p99_ms_max_over_replays": 1.337759919999998,
+ "note": "medians over replays of the per-replay statistics; ow = publish -> edge callback (includes the clock offset, <= 2 ms)"
+}

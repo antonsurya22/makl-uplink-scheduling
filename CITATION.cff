@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software or data, please cite the article and the Zenodo record."
+title: "MAKL: margin-aware uplink scheduling for edge-assisted mobile robots (code, protocols and data)"
+type: software
+authors:
+  - family-names: Tung
+    given-names: Yi-Chih
+    affiliation: "Ming Chi University of Technology"
+  - family-names: Diputra
+    given-names: "I Gusti Nyoman Anton Surya"
+    affiliation: "Ming Chi University of Technology"
+  - family-names: Lin
+    given-names: Yi-Nan
+    affiliation: "Ming Chi University of Technology"
+  - family-names: Shen
+    given-names: "Victor R. L."
+    affiliation: "National Taipei University"
+repository-code: "https://github.com/antonsurya22/makl-uplink-scheduling"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-19"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24383545"
+    description: "Results archives and frozen experiment packages (Zenodo)"
+keywords:
+  - information freshness
+  - age of information
+  - packet scheduling
+  - ROS 2
+  - edge robotics
+  - mobile robots
+  - wireless uplink

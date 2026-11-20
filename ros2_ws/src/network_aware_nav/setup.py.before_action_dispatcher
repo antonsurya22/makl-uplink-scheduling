@@ -1,0 +1,67 @@
+from setuptools import setup, find_packages
+import os
+from glob import glob
+
+package_name = 'network_aware_nav'
+
+setup(
+    name=package_name,
+    version='0.0.1',
+    packages=find_packages(),
+    py_modules=[
+        'stage0_runner',
+        'preflight',
+        'analyze',
+        'worldgen',
+    ],
+    data_files=[
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'),
+            glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'worlds'),
+            glob('worlds/*')),
+        (os.path.join('share', package_name, 'maps'),
+            glob('maps/*')),
+        (os.path.join('share', package_name, 'config'),
+            glob('config/*')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='Anton',
+    maintainer_email='your_email@example.com',
+    description='Network-aware navigation experiments for ROS 2 service robots.',
+    license='Apache-2.0',
+    entry_points={
+        'console_scripts': [
+            'state_aggregator = network_aware_nav.state_aggregator:main',
+
+            'network_monitor_integrated = network_aware_nav.network_monitor_integrated:main',
+
+            'bandwidth_observer = network_aware_nav.bandwidth_observer:main',
+
+            'camera_bandwidth_limiter = network_aware_nav.camera_bandwidth_limiter:main',
+
+            'adaptive_camera_relay = network_aware_nav.adaptive_camera_relay:main',
+
+            'qos_profile_manager = network_aware_nav.qos_profile_manager:main',
+
+            'robot_state_monitor = network_aware_nav.robot_state_monitor:main',
+
+            'velocity_mode_gate = network_aware_nav.velocity_mode_gate:main',
+
+            'navigation_mode_manager = network_aware_nav.navigation_mode_manager:main',
+
+            'camera_network_emulator = network_aware_nav.camera_network_emulator:main',
+
+            'network_monitor = network_aware_nav.network_monitor:main',
+
+            'network_emulator = network_aware_nav.network_emulator:main',
+            'dynamic_obstacle = network_aware_nav.dynamic_obstacle:main',
+            'stage0_runner = network_aware_nav.stage0_runner:main',
+            'stage0_runner_dynamic = network_aware_nav.stage0_runner_dynamic:main',
+            'stage0_runner_formal = network_aware_nav.stage0_runner_formal:main',
+        ],
+    },
+)

@@ -1,0 +1,13 @@
+profile_cell,condition,tau_violation,tau_camera_F
+LC-Q2,jit10,0.933,0.8
+LC-Q2,jit50,0.733,0.933
+LC-Q2,loss1,0.867,0.8
+LC-Q2,loss5,0.733,0.867
+LC-Q2,ge,0.867,0.733
+LC-Q2,capsq,0.2,0.867
+LB-Q1,jit10,0.6,1.0
+LB-Q1,jit50,0.6,0.8
+LB-Q1,loss1,0.733,1.0
+LB-Q1,loss5,0.733,0.867
+LB-Q1,ge,0.867,0.867
+LB-Q1,capsq,0.6,0.867

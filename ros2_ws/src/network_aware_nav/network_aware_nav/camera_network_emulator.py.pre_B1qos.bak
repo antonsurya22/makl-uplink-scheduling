@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+
+import random
+from collections import deque
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+
+from sensor_msgs.msg import Image
+from std_msgs.msg import Float32, Float32MultiArray, String
+
+
+PROFILES = {
+    "normal": {
+        "delay_min": 0.020,
+        "delay_max": 0.050,
+        "loss_min": 0.00,
+        "loss_max": 0.01,
+    },
+    "mild": {
+        "delay_min": 0.080,
+        "delay_max": 0.150,
+        "loss_min": 0.02,
+        "loss_max": 0.05,
+    },
+    "moderate": {
+        "delay_min": 0.180,
+        "delay_max": 0.300,
+        "loss_min": 0.08,
+        "loss_max": 0.15,
+    },
+    "severe": {
+        "delay_min": 0.450,
+        "delay_max": 0.700,
+        "loss_min": 0.20,
+        "loss_max": 0.35,
+    },
+}
+
+
+def stamp_to_sec(stamp):
+    return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+
+
+class CameraNetworkEmulator(Node):
+
+    def __init__(self):
+        super().__init__('camera_network_emulator')
+
+        self.declare_parameter('seed', 13)
+
+        seed = int(self.get_parameter('seed').value)
+        self.rng = random.Random(seed)
+
+        # Channel condition comes from network_emulator.
+        self.active_profile = 'normal'
+
+        # FIFO queue:
+        # (release_time_ns, Image, sampled_delay)
+        self.pending = deque()
+
+        self.window_received = 0
+        self.window_dropped = 0
+
+        self.last_sampled_delay = 0.0
+        self.last_published_stamp = None
+
+        self.image_pub = self.create_publisher(
+            Image,
+            '/camera/image_degraded',
+            qos_profile_sensor_data,
+        )
+
+        self.age_pub = self.create_publisher(
+            Float32,
+            '/camera_age',
+            10,
+        )
+
+        # [sampled_delay, actual_loss, camera_age]
+        self.diag_pub = self.create_publisher(
+            Float32MultiArray,
+            '/camera_network_diag',
+            10,
+        )
+
+        self.image_sub = self.create_subscription(
+            Image,
+            '/camera/tx_bw',
+            self.image_callback,
+            qos_profile_sensor_data,
+        )
+
+        self.profile_sub = self.create_subscription(
+            String,
+            '/network_profile',
+            self.profile_callback,
+            10,
+        )
+
+        # Queue release check at 100 Hz simulation time.
+        self.flush_timer = self.create_timer(
+            0.01,
+            self.flush_queue,
+        )
+
+        # Diagnostics @ 2 Hz.
+        self.diag_timer = self.create_timer(
+            0.5,
+            self.publish_diagnostics,
+        )
+
+        self.get_logger().info(
+            f'camera network emulator started: '
+            f'profile={self.active_profile}, seed={seed}, '
+            f'FIFO ordering enabled'
+        )
+
+    def profile_callback(self, msg):
+        new_profile = str(msg.data).lower()
+
+        if new_profile not in PROFILES:
+            self.get_logger().warning(
+                f"unknown network profile '{new_profile}', ignoring"
+            )
+            return
+
+        if new_profile == self.active_profile:
+            return
+
+        old_profile = self.active_profile
+        self.active_profile = new_profile
+
+        # Prevent samples from previous experimental condition
+        # leaking into the next one.
+        discarded = len(self.pending)
+        self.pending.clear()
+
+        self.window_received = 0
+        self.window_dropped = 0
+        self.last_sampled_delay = 0.0
+        self.last_published_stamp = None
+
+        self.get_logger().info(
+            f'profile changed: {old_profile} -> {new_profile}; '
+            f'cleared {discarded} queued images'
+        )
+
+    def image_callback(self, msg):
+        cfg = PROFILES[self.active_profile]
+
+        self.window_received += 1
+
+        loss_probability = self.rng.uniform(
+            cfg['loss_min'],
+            cfg['loss_max'],
+        )
+
+        if self.rng.random() < loss_probability:
+            self.window_dropped += 1
+            return
+
+        delay = self.rng.uniform(
+            cfg['delay_min'],
+            cfg['delay_max'],
+        )
+
+        now_ns = self.get_clock().now().nanoseconds
+        release_ns = now_ns + int(delay * 1e9)
+
+        # FIFO preserves image ordering.
+        self.pending.append(
+            (release_ns, msg, delay)
+        )
+
+    def flush_queue(self):
+        now_ns = self.get_clock().now().nanoseconds
+
+        while self.pending:
+            release_ns, msg, sampled_delay = self.pending[0]
+
+            if release_ns > now_ns:
+                break
+
+            self.pending.popleft()
+
+            # IMPORTANT:
+            # Preserve original sensor timestamp.
+            # Do not restamp delayed information.
+            self.image_pub.publish(msg)
+
+            self.last_sampled_delay = float(sampled_delay)
+            self.last_published_stamp = stamp_to_sec(
+                msg.header.stamp
+            )
+
+    def get_camera_age(self):
+        if self.last_published_stamp is None:
+            return 0.0
+
+        now_sec = (
+            self.get_clock().now().nanoseconds / 1e9
+        )
+
+        return max(
+            0.0,
+            now_sec - self.last_published_stamp
+        )
+
+    def publish_diagnostics(self):
+        if self.window_received > 0:
+            actual_loss = (
+                self.window_dropped /
+                self.window_received
+            )
+        else:
+            actual_loss = 0.0
+
+        camera_age = self.get_camera_age()
+
+        age_msg = Float32()
+        age_msg.data = float(camera_age)
+        self.age_pub.publish(age_msg)
+
+        diag = Float32MultiArray()
+        diag.data = [
+            float(self.last_sampled_delay),
+            float(actual_loss),
+            float(camera_age),
+        ]
+        self.diag_pub.publish(diag)
+
+        self.window_received = 0
+        self.window_dropped = 0
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = CameraNetworkEmulator()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,20 @@
+{
+ "frozen_utc": "2026-11-17T08:32:10.236872+00:00",
+ "sha256": {
+  "J4_PROTOCOL_AMENDMENT_A1.md": "aa1b91986a35c1284a90eaf9fe838905110152364ba516179f60291d132c8966",
+  "J4_PROTOCOL_FREEZE.md": "617c943e9363fbe42a22bd195b7c313ba02707927700864a34404e7160d0cc90",
+  "JALANKAN_J4.sh": "0ba6c8b6bb88b4001976126bb12f4d9487a5fd3e9028524d5a7d7ecb2ac37c5f",
+  "README.md": "f4556accc86198b1cec82ad5917fe82620fb9f46888a634a1c1705791c049b04",
+  "j4_analysis.py": "0fc232fc18442e037b7f73bcec601740075310c9fc3b15cf3e6359a3d5a84f74",
+  "j4_bridge.py": "cce3e01c62c0c85a05bbc3a722e097e381ff91fc682788c9a1b6b596695b9da6",
+  "j4_guard.py": "84ef73e4ead53c89aff531a5da5d31467fe0c122d8d90a635694237f8df1b241",
+  "j4_links.py": "419fe96bfca5f74aeecbdfbdbf9d2fe71179c0188bd86543c5e3eda7aa4f6da8",
+  "j4_metrics.py": "bf4184d4943af949078d1188620b2233bb40e40f9150bcf2f9f4fb2db9043a35",
+  "j4_mode_gate.py": "f60c54ca00ac218e0e5f719ffc9a0a13c84ccef347b3893aec8d95732c88e74c",
+  "j4_run_all.py": "51185b4a379cb34cadf393d0eae01b4fb9cf4d55d488eba7795d5298572c25a2",
+  "j4_run_trial.py": "a2abe9fed62ad4e4f2cd5c4ae7bfb63e23659c992636be3c907cac98e18d386e",
+  "j4_stack.py": "3030d6b6668151caae894000cd9e8d5cb7ca5ece93f452a54145732c9e3e6635",
+  "tests/j4_run_trial_edits.py": "dd9d04613a175c2c5631b0a2cbd337f6a9f53afd277c3841437cc2fc488b6468",
+  "tests/test_j4_offline.py": "5fe80cd069220ad7437449befb9e20716e2fcfab4c4ba7d3f3645fae2d5cb3f7"
+ }
+}

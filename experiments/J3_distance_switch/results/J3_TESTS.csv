@@ -1,0 +1,12 @@
+test,result_json
+H1a_LC-Q1_MAKL_gt_B7_F,"{""n_pairs"": 5, ""diffs"": [1.32, 1.36, 1.44, 1.52, 1.32], ""mean_diff"": 1.392, ""J"": 0.4, ""evaluable"": true, ""clearly_greater"": true}"
+H1b_LC-Q1_MAKL_gt_B7_viol,"{""n_pairs"": 5, ""diffs"": [0.6, 0.3, -0.1, -0.4, 0.1], ""mean_diff"": 0.1, ""J"": 0.8, ""evaluable"": true, ""clearly_greater"": false}"
+H2a_LC-Q1_DSW0.8_gt_MAKL_viol,"{""n_pairs"": 5, ""diffs"": [6.6, 4.9, 9.7, 10.9, 7.0], ""mean_diff"": 7.82, ""J"": 0.8, ""evaluable"": true, ""clearly_greater"": true}"
+H2b_LB-Q1_MAKL_gt_DSW1.2_F,"{""n_pairs"": 5, ""diffs"": [0.24, 0.28, 0.4, 0.8, 0.2], ""mean_diff"": 0.384, ""J"": 0.4, ""evaluable"": true, ""clearly_greater"": false}"
+H2b_LC-Q1_MAKL_gt_DSW1.2_F,"{""n_pairs"": 5, ""diffs"": [0.2, 0.24, 0.24, 1.16, 0.2], ""mean_diff"": 0.408, ""J"": 0.4, ""evaluable"": true, ""clearly_greater"": true}"
+H3_LB-Q1_MAKL_gt_DSW1.0_viol,"{""n_pairs"": 5, ""diffs"": [-0.2, 0.0, -0.1, -0.5, 0.1], ""mean_diff"": -0.14, ""J"": 0.8, ""evaluable"": true, ""clearly_greater"": false}"
+H3_LB-Q1_DSW1.0_gt_MAKL_F,"{""n_pairs"": 5, ""diffs"": [-0.28, -0.44, -0.04, 0.0, 0.28], ""mean_diff"": -0.096, ""J"": 0.4, ""evaluable"": true, ""clearly_greater"": false}"
+H3_LC-Q1_MAKL_gt_DSW1.0_viol,"{""n_pairs"": 5, ""diffs"": [-0.3, -1.2, -0.2, -2.2, -1.2], ""mean_diff"": -1.02, ""J"": 0.8, ""evaluable"": true, ""clearly_greater"": false}"
+H3_LC-Q1_DSW1.0_gt_MAKL_F,"{""n_pairs"": 5, ""diffs"": [0.6, 0.64, -1.04, -0.16, 0.44], ""mean_diff"": 0.096, ""J"": 0.4, ""evaluable"": true, ""clearly_greater"": false}"
+H3_LC-Q2_MAKL_gt_DSW1.0_viol,"{""n_pairs"": 5, ""diffs"": [-0.2, 0.2, -0.6, 0.0, 0.4], ""mean_diff"": -0.04, ""J"": 0.7, ""evaluable"": true, ""clearly_greater"": false}"
+H3_LC-Q2_DSW1.0_gt_MAKL_F,"{""n_pairs"": 5, ""diffs"": [0.12, 0.04, -0.04, 0.0, 0.0], ""mean_diff"": 0.024, ""J"": 0.2, ""evaluable"": true, ""clearly_greater"": false}"

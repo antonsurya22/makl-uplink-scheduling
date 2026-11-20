@@ -1,0 +1,19 @@
+{
+ "A": {
+  "ow_p50_ms": 5.690618499999999,
+  "ow_p99_ms": 16.30060369000001,
+  "nav_minus_link_p50_ms": 7.5335,
+  "nav_minus_link_p99_ms": 19.78077499999997,
+  "pub_late_p99_ms": 8.145719999999999
+ },
+ "NP75": {
+  "ow_p50_ms": 74.38635049999999,
+  "ow_p99_ms": 587.96977008,
+  "nav_minus_link_p50_ms": 76.55475,
+  "nav_minus_link_p99_ms": 589.25347,
+  "pub_late_p99_ms": 8.681114999999998
+ },
+ "makl_decision_thread_p50_ms": 0.7755730000000001,
+ "makl_decision_thread_p99_ms_max": 1.1964017000000002,
+ "note": "Q1 only; medians over replays of the per-replay statistics"
+}

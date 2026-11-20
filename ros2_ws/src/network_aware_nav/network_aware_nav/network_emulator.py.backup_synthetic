@@ -1,0 +1,91 @@
+import random
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Float32MultiArray, String
+
+
+class NetworkEmulator(Node):
+    def __init__(self):
+        super().__init__('network_emulator')
+
+        self.declare_parameter('profile', 'normal')
+        self.profile = 'normal'
+
+        self.topic_age_pub = self.create_publisher(
+            Float32MultiArray,
+            '/topic_age',
+            10
+        )
+
+        self.profile_pub = self.create_publisher(
+            String,
+            '/network_profile',
+            10
+        )
+
+        self.timer = self.create_timer(0.5, self.timer_callback)
+
+        self.get_logger().info('network_emulator started')
+
+    def get_profile_values(self, profile):
+        if profile == 'normal':
+            latency = random.uniform(0.02, 0.05)
+            loss = random.uniform(0.00, 0.01)
+            scan_age = random.uniform(0.03, 0.08)
+            cmd_age = random.uniform(0.03, 0.08)
+
+        elif profile == 'mild':
+            latency = random.uniform(0.08, 0.15)
+            loss = random.uniform(0.02, 0.05)
+            scan_age = random.uniform(0.10, 0.20)
+            cmd_age = random.uniform(0.10, 0.20)
+
+        elif profile == 'moderate':
+            latency = random.uniform(0.18, 0.30)
+            loss = random.uniform(0.08, 0.15)
+            scan_age = random.uniform(0.25, 0.45)
+            cmd_age = random.uniform(0.20, 0.40)
+
+        elif profile == 'severe':
+            latency = random.uniform(0.45, 0.70)
+            loss = random.uniform(0.20, 0.35)
+            scan_age = random.uniform(0.60, 1.00)
+            cmd_age = random.uniform(0.50, 0.90)
+
+        else:
+            latency = random.uniform(0.02, 0.05)
+            loss = random.uniform(0.00, 0.01)
+            scan_age = random.uniform(0.03, 0.08)
+            cmd_age = random.uniform(0.03, 0.08)
+
+        return latency, loss, scan_age, cmd_age
+
+    def timer_callback(self):
+        self.profile = self.get_parameter('profile').get_parameter_value().string_value
+
+        latency, loss, scan_age, cmd_age = self.get_profile_values(self.profile)
+
+        msg = Float32MultiArray()
+        msg.data = [
+            float(latency),
+            float(loss),
+            float(scan_age),
+            float(cmd_age),
+        ]
+        self.topic_age_pub.publish(msg)
+
+        profile_msg = String()
+        profile_msg.data = self.profile
+        self.profile_pub.publish(profile_msg)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = NetworkEmulator()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
